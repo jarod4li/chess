@@ -12,7 +12,6 @@ public class ChessBoard {
 
     }
     public ChessBoard(ChessBoard board) {
-        // double for loop to see every pieces in the board and copy to a new board
         for (int i = 0; i < 8; i++){
             for (int j = 0; j < 8; j++){
                 this.squares[i][j] = board.getPiece(new ChessPosition(i+1, j+1));
