@@ -1,6 +1,7 @@
 package model;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public class AuthData {
   private String authToken;
@@ -21,7 +22,19 @@ public class AuthData {
   public void setUsername(String username) {
     this.username=username;
   }
+  public AuthData(String username){
+    this.username = username;
+    this.authToken = UUID.randomUUID().toString();
+  }
+  public AuthData(String username, String token){
+    this.username = username;
+    this.authToken = token;
+  }
 
+  public String getToken(){
+
+    return authToken;
+  }
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
