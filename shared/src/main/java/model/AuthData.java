@@ -15,16 +15,10 @@ public class AuthData {
     this.authToken = token;
   }
 
-  public String getUsername(){
-
-    return username;
-  }
-
   public String getToken(){
 
     return authToken;
   }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -42,7 +36,6 @@ public class AuthData {
   public String toString() {
     return "AuthData{" +
             "authToken='" + authToken + '\'' +
-            ", userName='" + username + '\'' +
             '}';
   }
 }
