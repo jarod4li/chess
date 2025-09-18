@@ -71,10 +71,10 @@ public class ChessPiece {
             var validMoves = new Bishop();
             return validMoves.pieceMoves(board, myPosition);
         }
-//        else if (pieceType == PieceType.KING){
-//            var validMoves = new King();
-//            return validMoves.pieceMoves(board, myPosition);
-//        }
+        else if (pieceType == PieceType.KING){
+            var validMoves = new King();
+            return validMoves.pieceMoves(board, myPosition);
+        }
 //        else if (pieceType == PieceType.KNIGHT){
 //            var validMoves = new Knight();
 //            return validMoves.pieceMoves(board, myPosition);
