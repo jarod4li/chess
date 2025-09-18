@@ -87,10 +87,10 @@ public class ChessPiece {
             var validMoves = new Queen();
             return validMoves.pieceMoves(board, myPosition);
         }
-//        else if (pieceType == PieceType.ROOK){
-//            var validMoves = new Rook();
-//            return validMoves.pieceMoves(board, myPosition);
-//        }
+        else if (pieceType == PieceType.ROOK){
+            var validMoves = new Rook();
+            return validMoves.pieceMoves(board, myPosition);
+        }
         return null;
     }
 }
