@@ -67,10 +67,10 @@ public class ChessPiece {
      * @return Collection of valid moves
      */
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition myPosition) {
-//        if (pieceType == PieceType.BISHOP){
-//            var validMoves = new Bishop();
-//            return validMoves.pieceMoves(board, myPosition);
-//        }
+        if (pieceType == PieceType.BISHOP){
+            var validMoves = new Bishop();
+            return validMoves.pieceMoves(board, myPosition);
+        }
 //        else if (pieceType == PieceType.KING){
 //            var validMoves = new King();
 //            return validMoves.pieceMoves(board, myPosition);
