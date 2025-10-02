@@ -82,6 +82,10 @@ public class ChessGame {
      * @throws InvalidMoveException if move is invalid
      */
     public void makeMove(ChessMove move) throws InvalidMoveException {
+        var piece = board.getPiece(move.getStartPosition());
+        if (piece == null) {
+            throw new InvalidMoveException("No piece at starting position: " + move.getStartPosition());
+        }
         var teamPlaying = board.getPiece(move.getStartPosition()).getTeamColor();
         Collection<ChessMove> moves = validMoves(move.getStartPosition());
         // Make sure the move is valid and it is the team's turn
