@@ -14,8 +14,11 @@ public class ChessGame {
     private TeamColor team;
     private ChessBoard board;
     public ChessGame() {
-
+        this.board = new ChessBoard();
+        this.board.resetBoard();
+        this.team = TeamColor.WHITE;
     }
+
 
     /**
      * @return Which team's turn it is
@@ -127,41 +130,37 @@ public class ChessGame {
      * @return True if the specified team is in check
      */
     public boolean isInCheck(TeamColor teamColor) {
-        var enemyMoves = new ArrayList<ChessMove>();
         ChessPosition kingPosition = null;
-        for (int i = 1; i <= 8; i++){
-            for (int j = 1; j <= 8; j++){
-                if (board.getPiece(new ChessPosition(i, j)) != null) {
-                    var piece = board.getPiece(new ChessPosition(i, j));
-                    // Get enemy possible moves
-                    if (piece.getTeamColor() != teamColor){
-                        enemyMoves.addAll(piece.pieceMoves(this.board, new ChessPosition(i, j)));
-                    }
+        var enemyMoves = new ArrayList<ChessMove>();
 
-                    // Identify where the king is located at the board
-                    if (piece.getPieceType() == ChessPiece.PieceType.KING && piece.getTeamColor() == teamColor) {
-                        kingPosition = new ChessPosition(i, j);
-                        // for each piece in the enemy's team check if there exists a move to the king's position
-                        for (ChessMove move: enemyMoves){
-                            if (move.getEndPosition().equals(kingPosition)){
-                                return true;
-                            }
-                        }
+        // Loop through the board once
+        for (int i = 1; i <= 8; i++) {
+            for (int j = 1; j <= 8; j++) {
+                var pos = new ChessPosition(i, j);
+                var piece = board.getPiece(pos);
+                if (piece == null) continue;
 
-                    }
+                if (piece.getTeamColor() == teamColor && piece.getPieceType() == ChessPiece.PieceType.KING) {
+                    kingPosition = pos;
+                } else if (piece.getTeamColor() != teamColor) {
+                    enemyMoves.addAll(piece.pieceMoves(board, pos));
                 }
             }
         }
 
-        // for each piece in the enemy's team check if there exists a move to the king's position
-        for (ChessMove move: enemyMoves){
-            if (move.getEndPosition().equals(kingPosition)){
+        // If king not found, return false
+        if (kingPosition == null) return false;
+
+        // Check if any enemy move attacks the king
+        for (ChessMove move : enemyMoves) {
+            if (move.getEndPosition().equals(kingPosition)) {
                 return true;
             }
         }
-        // else return false
+
         return false;
     }
+
 
     /**
      * Determines if the given team is in checkmate
