@@ -57,10 +57,8 @@ public class ChessGame {
             return null;
         }
         Collection<ChessMove> moves = board.getPiece(startPosition).pieceMoves(board, startPosition);
-        // Create copy of the board
         ChessBoard boardCopy = new ChessBoard(board);
 
-        // Create list to add all the valid moves
         var valid = new ArrayList<ChessMove>();
 
         for (ChessMove move: moves){
@@ -74,8 +72,6 @@ public class ChessGame {
             }
             board = new ChessBoard(boardCopy);
         }
-
-        // eliminate moves that puts king in check
         return valid;
     }
 
@@ -105,7 +101,6 @@ public class ChessGame {
         }
         // if (isInCheckmate(teamPlaying)) throw new InvalidMoveException("This is a checkmate!");
 
-        // Handle promotion or regular move
         var newPiece = (move.getPromotionPiece() == null)
                 ? piece
                 : new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
@@ -113,7 +108,6 @@ public class ChessGame {
         board.addPiece(move.getEndPosition(), newPiece);
         board.addPiece(move.getStartPosition(), null);
 
-        // Switch turn
         setTeamTurn(teamPlaying == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
     }
 
@@ -191,10 +185,10 @@ public class ChessGame {
     public boolean isInStalemate(TeamColor teamColor) {
         var friendMoves = new ArrayList<ChessMove>();
         if (!isInCheck(teamColor)) {
-            for (int k = 1; k <= 8; k++) {
-                for (int l = 1; l <= 8; l++) {
-                    if (board.getPiece(new ChessPosition(k, l)) != null && board.getPiece(new ChessPosition(k, l)).getTeamColor() == teamColor) {
-                        friendMoves.addAll(validMoves(new ChessPosition(k, l)));
+            for (int i = 1; i <= 8; i++) {
+                for (int j = 1; j <= 8; j++) {
+                    if (board.getPiece(new ChessPosition(i, j)) != null && board.getPiece(new ChessPosition(i, j)).getTeamColor() == teamColor) {
+                        friendMoves.addAll(validMoves(new ChessPosition(i, j)));
                     }
                 }
             }
