@@ -89,39 +89,33 @@ public class ChessGame {
         if (piece == null) {
             throw new InvalidMoveException("No piece at starting position: " + move.getStartPosition());
         }
-        var teamPlaying = board.getPiece(move.getStartPosition()).getTeamColor();
-        Collection<ChessMove> moves = validMoves(move.getStartPosition());
-        // Make sure the move is valid and it is the team's turn
-        if (moves.contains(move)){
-            if (teamPlaying.equals(getTeamTurn())){
-                if (isInStalemate(teamPlaying)) {
-                    throw new InvalidMoveException("This is a stalemate!");
-                }
-//                // return exception if in checkmate
-//                else if (isInCheckmate(teamPlaying)){
-//                    throw new InvalidMoveException("This is a checkmate");
-//                }
 
-                else{
-                    if (move.getPromotionPiece() == null) {
-                        board.addPiece(move.getEndPosition(), board.getPiece(move.getStartPosition()));
-                    }
-                    else{
-                        board.addPiece(move.getEndPosition(), new ChessPiece(board.getPiece(move.getStartPosition()).teamColor, move.getPromotionPiece()));
-                    }
-                    board.addPiece(move.getStartPosition(), null);
-                    setTeamTurn(teamPlaying == TeamColor.WHITE ? TeamColor.BLACK: TeamColor.WHITE);
-                }
+        var teamPlaying = piece.getTeamColor();
+        var moves = validMoves(move.getStartPosition());
 
-            }
-            else {
-                throw new InvalidMoveException("It's not your turn!");
-            }
-        }
-        else{
+        if (!moves.contains(move)) {
             throw new InvalidMoveException("Invalid move: " + move);
         }
+        if (!teamPlaying.equals(getTeamTurn())) {
+            throw new InvalidMoveException("It's not your turn!");
+        }
+        if (isInStalemate(teamPlaying)) {
+            throw new InvalidMoveException("This is a stalemate!");
+        }
+        // if (isInCheckmate(teamPlaying)) throw new InvalidMoveException("This is a checkmate!");
+
+        // Handle promotion or regular move
+        var newPiece = (move.getPromotionPiece() == null)
+                ? piece
+                : new ChessPiece(piece.getTeamColor(), move.getPromotionPiece());
+
+        board.addPiece(move.getEndPosition(), newPiece);
+        board.addPiece(move.getStartPosition(), null);
+
+        // Switch turn
+        setTeamTurn(teamPlaying == TeamColor.WHITE ? TeamColor.BLACK : TeamColor.WHITE);
     }
+
 
     /**
      * Determines if the given team is in check
