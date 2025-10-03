@@ -13,6 +13,7 @@ import java.util.Objects;
 public class ChessGame {
     private TeamColor team;
     private ChessBoard board;
+
     public ChessGame() {
         this.board = new ChessBoard();
         this.board.resetBoard();
@@ -126,8 +127,6 @@ public class ChessGame {
     public boolean isInCheck(TeamColor teamColor) {
         ChessPosition kingPosition = null;
         var enemyMoves = new ArrayList<ChessMove>();
-
-        // Loop through the board once
         for (int i = 1; i <= 8; i++) {
             for (int j = 1; j <= 8; j++) {
                 var pos = new ChessPosition(i, j);
@@ -142,10 +141,8 @@ public class ChessGame {
             }
         }
 
-        // If king not found, return false
         if (kingPosition == null) return false;
 
-        // Check if any enemy move attacks the king
         for (ChessMove move : enemyMoves) {
             if (move.getEndPosition().equals(kingPosition)) {
                 return true;
@@ -163,23 +160,26 @@ public class ChessGame {
      * @return True if the specified team is in checkmate
      */
     public boolean isInCheckmate(TeamColor teamColor) {
-        var friendMoves = new ArrayList<ChessMove>();
-        // Check to see if team has any valid moves
-        if (isInCheck(teamColor)) {
-            for (int k = 1; k <= 8; k++) {
-                for (int l = 1; l <= 8; l++) {
-                    // Find each friend piece in the board and their possible moves
-                    if (board.getPiece(new ChessPosition(k, l)) != null && board.getPiece(new ChessPosition(k, l)).getTeamColor() == teamColor) {
-                        friendMoves.addAll(validMoves(new ChessPosition(k, l)));
+        if (!isInCheck(teamColor)) {
+            return false;
+        }
+
+        for (int row = 1; row <= 8; row++) {
+            for (int col = 1; col <= 8; col++) {
+                ChessPosition pos = new ChessPosition(row, col);
+                ChessPiece piece = board.getPiece(pos);
+
+                if (piece != null && piece.getTeamColor() == teamColor) {
+                    if (!validMoves(pos).isEmpty()) {
+                        return false; // Found at least one valid move → not checkmate
                     }
                 }
             }
-            if (friendMoves.isEmpty()) {
-                return true;
-            }
         }
-        return false;
+
+        return true; // No valid moves while in check → checkmate
     }
+
 
     /**
      * Determines if the given team is in stalemate, which here is defined as having
@@ -190,11 +190,9 @@ public class ChessGame {
      */
     public boolean isInStalemate(TeamColor teamColor) {
         var friendMoves = new ArrayList<ChessMove>();
-        // Check to see if team has any valid moves
         if (!isInCheck(teamColor)) {
             for (int k = 1; k <= 8; k++) {
                 for (int l = 1; l <= 8; l++) {
-                    // Find each friend piece in the board and their possible moves
                     if (board.getPiece(new ChessPosition(k, l)) != null && board.getPiece(new ChessPosition(k, l)).getTeamColor() == teamColor) {
                         friendMoves.addAll(validMoves(new ChessPosition(k, l)));
                     }
