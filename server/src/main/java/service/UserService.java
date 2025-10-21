@@ -2,7 +2,7 @@ package service;
 
 import dataaccess.AuthDAO;
 import dataaccess.DataAccessException;
-//import dataaccess.UserDAO;
+import dataaccess.UserDAO;
 import model.AuthData;
 import model.UserData;
 //import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
