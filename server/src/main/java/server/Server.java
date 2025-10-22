@@ -138,16 +138,47 @@ public class Server {
     private void joinGame(Context ctx) {
         try {
             String token = ctx.header("authorization");
-            var request = serializer.fromJson(ctx.body(), GameData.class);
+
+            GameData request = new Gson().fromJson(ctx.body(), GameData.class);
+
+            String color = request.getPlayerColor();
+            if (color == null || color.isEmpty() ||
+                    !(color.equals("WHITE") || color.equals("BLACK"))) {
+                ctx.status(400); // Bad Request
+                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+                return;
+            }
+            String gameID = request.getGameID();
+            if (gameID == null || gameID.isEmpty()) {
+                ctx.status(400); // Bad Request
+                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+                return;
+            }
             gameService.joinGame(request, token);
-            ctx.status(HttpStatus.OK);
-        } catch (JsonSyntaxException e) {
-            ctx.status(HttpStatus.BAD_REQUEST)
-                    .result(serializer.toJson(errorMessage("bad request")));
+
+            ctx.status(200);
+            ctx.result(new Gson().toJson(Map.of("message", "Joined game successfully")));
+
         } catch (DataAccessException e) {
-            handleError(ctx, e);
+            String message = e.getMessage();
+            if ("Error: unauthorized".equals(message)) {
+                ctx.status(401); // Unauthorized
+            } else if ("Error: already taken".equals(message)) {
+                ctx.status(403); // Forbidden
+            } else if ("Error: bad request".equals(message)) {
+                ctx.status(400);
+            } else {
+                ctx.status(500);
+            }
+            ctx.result(new Gson().toJson(Map.of("message", message)));
+        } catch (Exception e) {
+            ctx.status(400);
+            ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
         }
     }
+
+
+
 
     private void listGames(Context ctx) {
         try {
