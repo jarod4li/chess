@@ -7,8 +7,9 @@ import io.javalin.http.Context;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-//import service.ClearService;
-//import service.GameService;
+
+import service.ClearService;
+import service.GameService;
 import service.UserService;
 
 import java.util.ArrayList;
@@ -19,14 +20,15 @@ public class Server {
     private final Javalin javalin;
     private final Gson gson = new Gson();
 
-    private final UserService userService;
-    private final GameService gameService;
-    //private final ClearService clearService;
+    private UserDAO user;
+    private AuthDAO auth;
+    private GameDAO game;
+    private UserService userService;
+    private GameService gameService;
+    private ClearService clearService;
 
     public Server() {
-        UserDAO user = new UserDAO();
-        AuthDAO auth = new AuthDAO();
-        GameDAO game = new GameDAO();
+
 
         userService = new UserService(user, auth);
         //gameService = new GameService(game, auth);
@@ -86,8 +88,35 @@ public class Server {
             handleError(ctx, e);
         }
     }
+    private void createGameHandler(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            GameData request = gson.fromJson(ctx.body(), GameData.class);
+            String gameID = gameService.registerGame(request, token);
+            ctx.status(200).json(new GameData(null, gameID));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
 
+    private void listGamesHandler(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            ArrayList<GameData> games = gameService.listGames(token);
+            ctx.status(200).json(Map.of("games", games));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
 
+    private void clearApplicationHandler(Context ctx) {
+        try {
+            clearService.clearApplication();
+            ctx.status(200).result("{}");
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
 
     private void logoutHandler(Context ctx) {
         try {

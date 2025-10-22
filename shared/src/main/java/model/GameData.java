@@ -1,73 +1,100 @@
 package model;
 
 import chess.ChessGame;
+
 import java.util.Objects;
 
 public class GameData {
-    private final String gameID;
+    private String gameID;
     private String whiteUsername;
     private String blackUsername;
-    private final String gameName;
+    private String gameName;
     private ChessGame game;
-    //private String authToken;
+    private String playerColor;
 
-    public GameData(String gameName, String gameID, String authToken) {
+    public GameData(String playerColor, String gameID){
         this.gameID = gameID;
+        this.whiteUsername = null;
+        this.blackUsername = null;
+        this.gameName = null;
+        this.game = null;
+        this.playerColor = playerColor;
+
+    }
+    public GameData(String gameName){
+        this.gameID = null;
         this.whiteUsername = null;
         this.blackUsername = null;
         this.gameName = gameName;
         this.game = null;
-        //this.authToken = authToken;
+        this.playerColor = null;
+
+    }
+    public GameData(String gameName, String gameID, String whiteUsername, String blackUsername) {
+        this.gameID = gameID;
+        this.whiteUsername = whiteUsername;
+        this.blackUsername = blackUsername;
+        this.gameName = gameName;
+        this.game = null;
+        this.playerColor = null;
+    }
+    public GameData(String gameName, String gameID, String whiteUsername, String blackUsername, ChessGame game) {
+        this.gameID = gameID;
+        this.whiteUsername = whiteUsername;
+        this.blackUsername = blackUsername;
+        this.gameName = gameName;
+        this.game = game;
+        this.playerColor = null;
+    }
+    public String getGameID(){
+        return gameID;
     }
 
-    public String getGameID() {
-        return this.gameID;
+    public String getWhite(){
+        return whiteUsername;
     }
-
-    public String getWhite() {
-        return this.whiteUsername;
+    public String getBlack(){
+        return blackUsername;
     }
-
-    public String getBlack() {
-        return this.blackUsername;
+    public ChessGame getGame(){
+        return game;
     }
-
-    public void setWhite(String playerWhite) {
-        this.whiteUsername = playerWhite;
+    public void setGame(ChessGame game){this.game = game;}
+    public void setGame(){this.game = new ChessGame();}
+    public void setGameName(String gameName){this.gameName = gameName;}
+    public void setGameID(String gameID){
+        this.gameID = gameID;
     }
-
-    public void setBlack(String playerBlack) {
-        this.blackUsername = playerBlack;
+    public void setWhite(String playerWhite){
+        whiteUsername = playerWhite;
     }
-
-    public String getName() {
-        return this.gameName;
+    public void setBlack(String playerBlack) {blackUsername = playerBlack;}
+    public String getName(){
+        return gameName;
     }
+    public String getPlayerColor() {return playerColor;}
 
-    public ChessGame getGame() {
-        return this.game;
-    }
 
-//    public String getAuthToken() {
-//        return this.authToken;
-//    }
-
+    @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        } else if (o != null && this.getClass() == o.getClass()) {
-            GameData gameData = (GameData)o;
-            return Objects.equals(this.gameName, gameData.gameName) && Objects.equals(this.gameID, gameData.gameID) && Objects.equals(this.whiteUsername, gameData.whiteUsername) && Objects.equals(this.blackUsername, gameData.blackUsername);
-        } else {
-            return false;
-        }
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        GameData gameData = (GameData) o;
+        return Objects.equals(gameName, gameData.gameName) && Objects.equals(gameID, gameData.gameID) && Objects.equals(whiteUsername, gameData.whiteUsername) && Objects.equals(blackUsername, gameData.blackUsername);
     }
 
+    @Override
     public int hashCode() {
-        return Objects.hash(new Object[]{this.gameName, this.gameID, this.whiteUsername, this.blackUsername});
+        return Objects.hash(gameName, gameID, whiteUsername, blackUsername);
     }
 
+    @Override
     public String toString() {
-        return "GameData{gameName='" + this.gameName + "', gameID='" + this.gameID + "', whiteUsername='" + this.whiteUsername + "', blackUsername='" + this.blackUsername + "'}";
+        return "GameData{" +
+                "gameName='" + gameName + '\'' +
+                ", gameID='" + gameID + '\'' +
+                ", whiteUsername='" + whiteUsername + '\'' +
+                ", blackUsername='" + blackUsername + '\'' +
+                '}';
     }
 }
