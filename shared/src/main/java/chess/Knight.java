@@ -25,10 +25,10 @@ public class Knight implements PieceMovesCalculator{
     void checkAndAddMove(ArrayList<ChessMove> moves, ChessBoard board, ChessPosition position, int row, int col) {
         if (row >= 1 && row <= 8 && col >= 1 && col <= 8) {
             var nextPosition = new ChessPosition(row, col);
-            HelperFunction(moves, board, position, nextPosition);
+            helperFunction(moves, board, position, nextPosition);
         }
     }
-    public void HelperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition) {
+    public void helperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition) {
         if ((board.getPiece(nextPosition) == null)) {
             validMoves.add(new ChessMove(position, nextPosition));
         } else if ((board.getPiece(nextPosition).getTeamColor() != board.getPiece(position).getTeamColor())) {

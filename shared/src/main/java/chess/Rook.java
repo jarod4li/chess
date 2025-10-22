@@ -28,7 +28,7 @@ public class Rook implements PieceMovesCalculator{
             }
 
             var nextPosition = new ChessPosition(nextRow, nextCol);
-            if (!HelperFunction(moves, board, position, nextPosition, true)) {
+            if (!helperFunction(moves, board, position, nextPosition, true)) {
                 break;
             }
         }
@@ -36,7 +36,7 @@ public class Rook implements PieceMovesCalculator{
 
 
 
-    public boolean HelperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition, boolean keepGoing) {
+    public boolean helperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition, boolean keepGoing) {
         if (keepGoing) {
             if ((board.getPiece(nextPosition) == null)) {
                 validMoves.add(new ChessMove(position, nextPosition));

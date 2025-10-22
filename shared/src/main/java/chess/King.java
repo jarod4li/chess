@@ -24,14 +24,14 @@ public class King implements PieceMovesCalculator {
 
                 if (newRow >= 1 && newRow <= 8 && newCol >= 1 && newCol <= 8) {
                     ChessPosition nextPosition = new ChessPosition(newRow, newCol);
-                    HelperFunction(validMoves, board, position, nextPosition);
+                    helperFunction(validMoves, board, position, nextPosition);
                 }
             }
         }
 
         return validMoves;
     }
-    public void HelperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition) {
+    public void helperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition) {
         if ((board.getPiece(nextPosition) == null)) {
             validMoves.add(new ChessMove(position, nextPosition));
         } else if ((board.getPiece(nextPosition).getTeamColor() != board.getPiece(position).getTeamColor())) {

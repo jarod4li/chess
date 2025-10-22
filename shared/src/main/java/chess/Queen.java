@@ -32,7 +32,7 @@ public class Queen implements PieceMovesCalculator{
             }
 
             var nextPosition = new ChessPosition(nextRow, nextCol);
-            boolean canContinue = HelperFunction(moves, board, position, nextPosition, true);
+            boolean canContinue = helperFunction(moves, board, position, nextPosition, true);
 
             if (!canContinue) {
                 break;
@@ -42,7 +42,7 @@ public class Queen implements PieceMovesCalculator{
 
 
 
-    public boolean HelperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition, boolean keepGoing) {
+    public boolean helperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition, boolean keepGoing) {
         if (keepGoing) {
             if ((board.getPiece(nextPosition) == null)) {
                 validMoves.add(new ChessMove(position, nextPosition));
