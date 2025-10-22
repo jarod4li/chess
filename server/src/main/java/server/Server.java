@@ -78,25 +78,18 @@ public class Server {
 
     private void login(Context ctx) {
         try {
-            // parse body (may throw JsonSyntaxException for malformed JSON)
             var user = serializer.fromJson(ctx.body(), UserData.class);
-
-            // If JSON parsed but required fields are missing -> 400 Bad Request
             if (user == null || user.getUsername() == null || user.getPassword() == null) {
                 ctx.status(HttpStatus.BAD_REQUEST)
                         .result(serializer.toJson(errorMessage("bad request")));
                 return;
             }
-
-            // normal login flow
             var auth = userService.logIn(user);
             ctx.status(HttpStatus.OK).result(serializer.toJson(auth));
         } catch (JsonSyntaxException e) {
-            // malformed JSON -> 400 Bad Request
             ctx.status(HttpStatus.BAD_REQUEST)
                     .result(serializer.toJson(errorMessage("bad request")));
         } catch (DataAccessException e) {
-            // service-level errors -> map to appropriate status/message
             handleError(ctx, e);
         }
     }
@@ -115,17 +108,32 @@ public class Server {
     private void createGame(Context ctx) {
         try {
             String token = ctx.header("authorization");
-            var request = serializer.fromJson(ctx.body(), GameData.class);
+
+            GameData request = new Gson().fromJson(ctx.body(), GameData.class);
+
+            if (request.getName() == null) {
+                ctx.status(400); // Bad Request
+                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+                return;
+            }
             String gameID = gameService.registerGame(request, token);
-            ctx.status(HttpStatus.OK)
-                    .result(serializer.toJson(Map.of("gameID", Integer.parseInt(gameID))));
-        } catch (JsonSyntaxException e) {
-            ctx.status(HttpStatus.BAD_REQUEST)
-                    .result(serializer.toJson(errorMessage("bad request")));
+
+            ctx.status(200);
+            ctx.result(new Gson().toJson(new GameData(null, gameID)));
         } catch (DataAccessException e) {
-            handleError(ctx, e);
+            String message = e.getMessage();
+            if ("Error: unauthorized".equals(message)) {
+                ctx.status(401);
+            } else if ("Error: bad request".equals(message)) {
+                ctx.status(400);
+            } else {
+                ctx.status(500);
+            }
+            ctx.result(new Gson().toJson(Map.of("message", e.getMessage())));
         }
     }
+
+
 
     private void joinGame(Context ctx) {
         try {
@@ -170,4 +178,5 @@ public class Server {
     private Map<String, String> errorMessage(String message) {
         return Map.of("message", "Error: " + message);
     }
+
 }
