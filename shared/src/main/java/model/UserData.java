@@ -13,6 +13,12 @@ public class UserData {
         this.email = email;
     }
 
+    // New getter that the server expects
+    public String getUsername() {
+        return username;
+    }
+
+    // Keep old getter if you want
     public String getName() {
         return username;
     }
@@ -45,7 +51,7 @@ public class UserData {
     @Override
     public String toString() {
         return "UserData{" +
-                "userName='" + username + '\'' +
+                "username='" + username + '\'' +
                 ", password='" + password + '\'' +
                 ", email='" + email + '\'' +
                 '}';

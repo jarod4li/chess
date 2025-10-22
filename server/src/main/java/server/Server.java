@@ -78,13 +78,29 @@ public class Server {
 
     private void login(Context ctx) {
         try {
+            // parse body (may throw JsonSyntaxException for malformed JSON)
             var user = serializer.fromJson(ctx.body(), UserData.class);
+
+            // If JSON parsed but required fields are missing -> 400 Bad Request
+            if (user == null || user.getUsername() == null || user.getPassword() == null) {
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .result(serializer.toJson(errorMessage("bad request")));
+                return;
+            }
+
+            // normal login flow
             var auth = userService.logIn(user);
             ctx.status(HttpStatus.OK).result(serializer.toJson(auth));
+        } catch (JsonSyntaxException e) {
+            // malformed JSON -> 400 Bad Request
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
         } catch (DataAccessException e) {
+            // service-level errors -> map to appropriate status/message
             handleError(ctx, e);
         }
     }
+
 
     private void logout(Context ctx) {
         try {
