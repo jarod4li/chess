@@ -20,7 +20,7 @@ public class Server {
     private final Gson gson = new Gson();
 
     private final UserService userService;
-    //private final GameService gameService;
+    private final GameService gameService;
     //private final ClearService clearService;
 
     public Server() {
@@ -36,10 +36,10 @@ public class Server {
 
         javalin.post("/user", this::registerHandler);
         javalin.post("/session", this::loginHandler);
-//        javalin.post("/game", this::createGameHandler);
-//        javalin.put("/game", this::joinGameHandler);
-//        javalin.get("/game", this::listGamesHandler);
-//        javalin.delete("/db", this::clearApplicationHandler);
+        javalin.post("/game", this::createGameHandler);
+        javalin.put("/game", this::joinGameHandler);
+        javalin.get("/game", this::listGamesHandler);
+        javalin.delete("/db", this::clearApplicationHandler);
         javalin.delete("/session", this::logoutHandler);
 
         javalin.exception(Exception.class, (e, ctx) -> {
@@ -76,7 +76,16 @@ public class Server {
             handleError(ctx, e);
         }
     }
-
+    private void joinGameHandler(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            GameData request = gson.fromJson(ctx.body(), GameData.class);
+            gameService.joinGame(request, token);
+            ctx.status(200).result("{}");
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
 
 
 
