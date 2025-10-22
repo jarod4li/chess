@@ -1,13 +1,14 @@
 package server;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dataaccess.*;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import io.javalin.http.HttpStatus;
 import model.AuthData;
 import model.GameData;
 import model.UserData;
-
 import service.ClearService;
 import service.GameService;
 import service.UserService;
@@ -17,127 +18,140 @@ import java.util.Map;
 
 public class Server {
 
-    private final Javalin javalin;
-    private final Gson gson = new Gson();
-
-    private UserDAO user;
-    private AuthDAO auth;
-    private GameDAO game;
-    private UserService userService;
-    private GameService gameService;
-    private ClearService clearService;
+    private final Javalin server;
+    private final Gson serializer;
+    private final UserService userService;
+    private final GameService gameService;
+    private final ClearService clearService;
 
     public Server() {
+        server = Javalin.create(config -> config.staticFiles.add("web"));
+        serializer = new Gson();
 
+        UserDAO userDAO = new UserDataDAO();
+        AuthDAO authDAO = new AuthDataDAO();
+        GameDAO gameDAO = new GameDataDAO();
 
-        userService = new UserService(user, auth);
-        //gameService = new GameService(game, auth);
-        //clearService = new ClearService(user, game, auth);
+        userService = new UserService(userDAO, authDAO);
+        gameService = new GameService(gameDAO, authDAO);
+        clearService = new ClearService(userDAO, gameDAO, authDAO);
 
-        javalin = Javalin.create(config -> config.staticFiles.add("web"));
-
-        javalin.post("/user", this::registerHandler);
-        javalin.post("/session", this::loginHandler);
-        javalin.post("/game", this::createGameHandler);
-        javalin.put("/game", this::joinGameHandler);
-        javalin.get("/game", this::listGamesHandler);
-        javalin.delete("/db", this::clearApplicationHandler);
-        javalin.delete("/session", this::logoutHandler);
-
-        javalin.exception(Exception.class, (e, ctx) -> {
-            e.printStackTrace();
-            ctx.status(500).json(Map.of("message", "Internal server error"));
-        });
+        server.delete("db", this::clearApplication);
+        server.delete("session", this::logout);
+        server.post("user", this::register);
+        server.post("session", this::login);
+        server.post("game", this::createGame);
+        server.put("game", this::joinGame);
+        server.get("game", this::listGames);
     }
 
     public int run(int desiredPort) {
-        javalin.start(desiredPort);
-        return javalin.port();
+        server.start(desiredPort);
+        return server.port();
     }
 
     public void stop() {
-        javalin.stop();
+        server.stop();
     }
 
-    private void registerHandler(Context ctx) {
-        try {
-            UserData request = gson.fromJson(ctx.body(), UserData.class);
-            AuthData authToken = userService.register(request);
-            ctx.status(200).json(authToken);
-        } catch (DataAccessException e) {
-            handleError(ctx, e);
-        }
-    }
-
-    private void loginHandler(Context ctx) {
-        try {
-            UserData request = gson.fromJson(ctx.body(), UserData.class);
-            AuthData authToken = userService.logIn(request);
-            ctx.status(200).json(authToken);
-        } catch (DataAccessException e) {
-            handleError(ctx, e);
-        }
-    }
-    private void joinGameHandler(Context ctx) {
-        try {
-            String token = ctx.header("authorization");
-            GameData request = gson.fromJson(ctx.body(), GameData.class);
-            gameService.joinGame(request, token);
-            ctx.status(200).result("{}");
-        } catch (DataAccessException e) {
-            handleError(ctx, e);
-        }
-    }
-    private void createGameHandler(Context ctx) {
-        try {
-            String token = ctx.header("authorization");
-            GameData request = gson.fromJson(ctx.body(), GameData.class);
-            String gameID = gameService.registerGame(request, token);
-            ctx.status(200).json(new GameData(null, gameID));
-        } catch (DataAccessException e) {
-            handleError(ctx, e);
-        }
-    }
-
-    private void listGamesHandler(Context ctx) {
-        try {
-            String token = ctx.header("authorization");
-            ArrayList<GameData> games = gameService.listGames(token);
-            ctx.status(200).json(Map.of("games", games));
-        } catch (DataAccessException e) {
-            handleError(ctx, e);
-        }
-    }
-
-    private void clearApplicationHandler(Context ctx) {
+    private void clearApplication(Context ctx) {
         try {
             clearService.clearApplication();
-            ctx.status(200).result("{}");
+            ctx.status(HttpStatus.OK);
         } catch (DataAccessException e) {
             handleError(ctx, e);
         }
     }
 
-    private void logoutHandler(Context ctx) {
+    private void register(Context ctx) {
+        try {
+            var user = serializer.fromJson(ctx.body(), UserData.class);
+            var auth = userService.register(user);
+            ctx.status(HttpStatus.OK).result(serializer.toJson(auth));
+        } catch (JsonSyntaxException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
+
+    private void login(Context ctx) {
+        try {
+            var user = serializer.fromJson(ctx.body(), UserData.class);
+            var auth = userService.logIn(user);
+            ctx.status(HttpStatus.OK).result(serializer.toJson(auth));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
+
+    private void logout(Context ctx) {
         try {
             String token = ctx.header("authorization");
             userService.logOut(token);
-            ctx.status(200).result("{}");
+            ctx.status(HttpStatus.OK);
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
+
+    private void createGame(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            var request = serializer.fromJson(ctx.body(), GameData.class);
+            String gameID = gameService.registerGame(request, token);
+            ctx.status(HttpStatus.OK)
+                    .result(serializer.toJson(Map.of("gameID", Integer.parseInt(gameID))));
+        } catch (JsonSyntaxException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
+
+    private void joinGame(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            var request = serializer.fromJson(ctx.body(), GameData.class);
+            gameService.joinGame(request, token);
+            ctx.status(HttpStatus.OK);
+        } catch (JsonSyntaxException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
+        } catch (DataAccessException e) {
+            handleError(ctx, e);
+        }
+    }
+
+    private void listGames(Context ctx) {
+        try {
+            String token = ctx.header("authorization");
+            ArrayList<GameData> games = gameService.listGames(token);
+            ctx.status(HttpStatus.OK)
+                    .result(serializer.toJson(Map.of("games", games)));
         } catch (DataAccessException e) {
             handleError(ctx, e);
         }
     }
 
 
-
     private void handleError(Context ctx, DataAccessException e) {
-        String message = e.getMessage();
-        switch (message) {
-            case "Error: bad request" -> ctx.status(400);
-            case "Error: unauthorized" -> ctx.status(401);
-            case "Error: already taken" -> ctx.status(403);
-            default -> ctx.status(500);
+        String msg = e.getMessage();
+        if (msg == null) msg = "Error: internal server error";
+
+        switch (msg) {
+            case "Error: bad request" -> ctx.status(HttpStatus.BAD_REQUEST);
+            case "Error: unauthorized" -> ctx.status(HttpStatus.UNAUTHORIZED);
+            case "Error: already taken" -> ctx.status(HttpStatus.FORBIDDEN);
+            default -> ctx.status(HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        ctx.json(Map.of("message", message));
+
+        ctx.result(serializer.toJson(errorMessage(msg.substring(7)))); // remove "Error: "
+    }
+
+    private Map<String, String> errorMessage(String message) {
+        return Map.of("message", "Error: " + message);
     }
 }
