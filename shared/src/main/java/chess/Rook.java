@@ -3,17 +3,22 @@ package chess;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class Rook implements PieceMovesCalculator{
+public class Rook implements PieceMovesCalculator {
+
+    private final ChessMoveUtility moveUtility;
+
+    public Rook() {
+        this.moveUtility = new ChessMoveUtility(); // instantiate your utility
+    }
+
     @Override
     public Collection<ChessMove> pieceMoves(ChessBoard board, ChessPosition position) {
         var validMoves = new ArrayList<ChessMove>();
-        int currRow = position.getRow();
-        int currCol = position.getColumn();
 
-        checkAndAddMoves(validMoves, board, position, 1, 0, 8); // up
-        checkAndAddMoves(validMoves, board, position, 0, -1, 8); // left
-        checkAndAddMoves(validMoves, board, position, -1, 0, 8); // down
-        checkAndAddMoves(validMoves, board, position, 0, 1, 8); // right
+        checkAndAddMoves(validMoves, board, position, 1, 0, 8);   // up
+        checkAndAddMoves(validMoves, board, position, 0, -1, 8);  // left
+        checkAndAddMoves(validMoves, board, position, -1, 0, 8);  // down
+        checkAndAddMoves(validMoves, board, position, 0, 1, 8);   // right
 
         return validMoves;
     }
@@ -28,25 +33,10 @@ public class Rook implements PieceMovesCalculator{
             }
 
             var nextPosition = new ChessPosition(nextRow, nextCol);
-            if (!helperFunction(moves, board, position, nextPosition, true)) {
+            // Use the utility class instead of the local helperFunction
+            if (!moveUtility.helperFunction(moves, board, position, nextPosition, true)) {
                 break;
             }
         }
-    }
-
-
-
-    public boolean helperFunction(Collection<ChessMove> validMoves, ChessBoard board, ChessPosition position, ChessPosition nextPosition, boolean keepGoing) {
-        if (keepGoing) {
-            if ((board.getPiece(nextPosition) == null)) {
-                validMoves.add(new ChessMove(position, nextPosition));
-                return true;
-            } else if ((board.getPiece(nextPosition).getTeamColor() != board.getPiece(position).getTeamColor())) {
-                validMoves.add(new ChessMove(position, nextPosition));
-                return false;
-            }
-            else return false;
-        }
-        return false;
     }
 }
