@@ -125,7 +125,7 @@ public class ChessGame {
             for (int j = 1; j <= 8; j++) {
                 var pos = new ChessPosition(i, j);
                 var piece = board.getPiece(pos);
-                if (piece == null) continue;
+                if (piece == null) {continue;}
 
                 if (piece.getTeamColor() == teamColor && piece.getPieceType() == ChessPiece.PieceType.KING) {
                     kingPosition = pos;
@@ -135,7 +135,7 @@ public class ChessGame {
             }
         }
 
-        if (kingPosition == null) return false;
+        if (kingPosition == null) {return false;}
 
         for (ChessMove move : enemyMoves) {
             if (move.getEndPosition().equals(kingPosition)) {
@@ -219,8 +219,8 @@ public class ChessGame {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {return true;}
+        if (o == null || getClass() != o.getClass()) {return false;}
         ChessGame chessGame = (ChessGame) o;
         return team == chessGame.team && Objects.equals(board, chessGame.board);
     }

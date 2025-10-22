@@ -40,7 +40,6 @@ public class Bishop implements PieceMovesCalculator {
                 downLeft = moveUtility.helperFunction(validMoves, board, position, nextPosition, downLeft);
             }
         }
-
         return validMoves;
     }
 }

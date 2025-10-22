@@ -33,13 +33,13 @@ public class UserData {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {return true;}
+        if (o == null || getClass() != o.getClass()) {return false;}
 
         UserData user = (UserData) o;
 
-        if (!Objects.equals(username, user.username)) return false;
-        if (!Objects.equals(password, user.password)) return false;
+        if (!Objects.equals(username, user.username)) {return false;}
+        if (!Objects.equals(password, user.password)) {return false;}
         return Objects.equals(email, user.email);
     }
 

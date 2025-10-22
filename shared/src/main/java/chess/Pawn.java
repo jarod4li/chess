@@ -13,7 +13,7 @@ public class Pawn implements PieceMovesCalculator {
         int currCol = position.getColumn();
         ChessPiece piece = board.getPiece(position);
 
-        if (piece == null) return validMoves;
+        if (piece == null) {return validMoves;}
 
         boolean isWhite = piece.getTeamColor() == ChessGame.TeamColor.WHITE;
         int direction = isWhite ? 1 : -1;

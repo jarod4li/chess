@@ -88,6 +88,5 @@ public class GameDataDAO implements GameDAO {
                 gamesList.add(updatedGame);
             }
         }
-
     }
 }

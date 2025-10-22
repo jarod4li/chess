@@ -194,7 +194,7 @@ public class Server {
 
     private void handleError(Context ctx, DataAccessException e) {
         String msg = e.getMessage();
-        if (msg == null) msg = "Error: internal server error";
+        if (msg == null) {msg = "Error: internal server error";}
 
         switch (msg) {
             case "Error: bad request" -> ctx.status(HttpStatus.BAD_REQUEST);
