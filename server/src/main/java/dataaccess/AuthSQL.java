@@ -35,11 +35,33 @@ public class AuthSQL implements AuthDAO{
     }
     @Override
     public AuthData addAuthToken(String username) throws DataAccessException {
-        return null;
+        AuthData newUser = new AuthData(username);
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("INSERT INTO authtokens (username, token) VALUES (?, ?)")) {
+            statement.setString(1, newUser.getUsername());
+            statement.setString(2, newUser.getToken());
+            statement.executeUpdate();
+            return newUser;
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
     }
     @Override
     public AuthData findToken(String token) throws DataAccessException{
-        return null;
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("SELECT * FROM authtokens WHERE token = ?")) {
+            statement.setString(1, token);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if(resultSet.next()) {
+                    String username = resultSet.getString("username");
+                    return new AuthData(username, token);
+                } else {
+                    return null;
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
     }
     @Override
     public void removeAuthToken(AuthData token) throws DataAccessException{
