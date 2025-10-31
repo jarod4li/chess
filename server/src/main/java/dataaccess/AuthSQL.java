@@ -65,9 +65,22 @@ public class AuthSQL implements AuthDAO{
     }
     @Override
     public void removeAuthToken(AuthData token) throws DataAccessException{
-
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("DELETE FROM authtokens WHERE token = ?")) {
+            statement.setString(1, token.getToken());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
     }
     @Override
     public void clearAllAuth() throws DataAccessException {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("TRUNCATE TABLE authtokens")) {
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
+
     }
 }
