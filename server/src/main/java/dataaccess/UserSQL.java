@@ -6,7 +6,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
+import org.mindrot.jbcrypt.BCrypt;
 public class UserSQL implements UserDAO {
     public UserSQL() throws DataAccessException  {
         configureDatabase();
@@ -51,19 +51,51 @@ public class UserSQL implements UserDAO {
         }
         return null;
     }
-
     @Override
     public UserData getUserWithEmail(String email) throws DataAccessException {
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE email = ?")) {
+            statement.setString(1, email);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    String name = resultSet.getString("username");
+                    String password = resultSet.getString("password");
+                    String fetchedEmail = resultSet.getString("email");
+                    return new UserData(name, password, fetchedEmail);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
         return null;
     }
 
+
     @Override
     public void addUser(String username, String password, String email) throws DataAccessException {
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO users (username, password, email) VALUES (?, ?, ?)")) {
 
+            statement.setString(1, username);
+            statement.setString(2, hashedPassword); // store hashed password
+            statement.setString(3, email);
+            statement.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
     }
+
 
     @Override
     public void clearAllUsers() throws DataAccessException {
-
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("TRUNCATE TABLE users")) {
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: " + e.getMessage());
+        }
     }
 }
