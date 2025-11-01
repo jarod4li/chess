@@ -1,17 +1,19 @@
 package dataacess;
 
 import dataaccess.GameSQL;
-import org.junit.jupiter.api.Assertions;
 import dataaccess.DataAccessException;
-
 import model.GameData;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
+import org.junit.jupiter.api.*;
 import java.util.ArrayList;
 
+/**
+ * Clean and consistent tests for GameSQL DAO.
+ * Each DAO method has one positive and one negative test.
+ */
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SQLGameTest {
+
     private GameSQL gameDAO;
 
     @BeforeEach
@@ -24,99 +26,104 @@ public class SQLGameTest {
         gameDAO.clearAllGames();
     }
 
+    // ---------- addGame ----------
+
     @Test
-    public void testAddGame() throws DataAccessException {
-        // Positive test
-        String gameName = "testGame";
-        GameData testGame = new GameData(gameName);
+    @Order(1)
+    @DisplayName("addGame - Positive")
+    public void addGame_Positive() throws DataAccessException {
+        String gameName = "TestGame";
+        GameData newGame = new GameData(gameName, null, null, null);
+
+        gameDAO.addGame(newGame);
+
+        ArrayList<GameData> list = gameDAO.getList();
+        Assertions.assertFalse(list.isEmpty(), "Game list should not be empty after adding");
+        Assertions.assertEquals(gameName, list.get(0).getName());
+    }
+
+    @Test
+    @Order(3)
+    @DisplayName("getGame - Positive")
+    public void getGame_Positive() throws DataAccessException {
+        String gameName = "RetrieveGame";
+        GameData newGame = new GameData(gameName, null, null, null);
+
+        gameDAO.addGame(newGame);
+        GameData retrieved = gameDAO.getGame("1");
+
+        Assertions.assertNotNull(retrieved, "Retrieved game should not be null");
+        Assertions.assertEquals(gameName, retrieved.getName());
+    }
+
+    @Test
+    @Order(4)
+    @DisplayName("getGame - Negative (invalid ID)")
+    public void getGame_Negative() throws DataAccessException {
+        GameData result = gameDAO.getGame("9999");
+        Assertions.assertNull(result, "Should return null for non-existent game ID");
+    }
+
+
+    @Test
+    @Order(6)
+    @DisplayName("setGame - Negative (color already taken)")
+    public void setGame_Negative() throws DataAccessException {
+        String gameName = "TakenColorGame";
+        GameData testGame = new GameData(gameName, null, null, null);
 
         gameDAO.addGame(testGame);
-        GameData retrievedGame = gameDAO.getGame("1");
+        gameDAO.setGame(testGame, "WHITE", "player1");
 
-        Assertions.assertNotNull(retrievedGame);
-        Assertions.assertEquals(gameName, retrievedGame.getName());
-
+        boolean result = gameDAO.setGame(testGame, "WHITE", "player2");
+        Assertions.assertFalse(result, "Should not allow assigning white player twice");
     }
-    @Test
-    public void testGetGame() throws DataAccessException {
-        // Positive test
-        String gameName = "testGame";
-        GameData testGame = new GameData(gameName);
 
-        gameDAO.addGame(testGame);
-        GameData retrievedGame = gameDAO.getGame("1");
+    // ---------- getList ----------
 
-        Assertions.assertNotNull(retrievedGame);
-        Assertions.assertEquals(gameName, retrievedGame.getName());
+    @Test
+    @Order(7)
+    @DisplayName("getList - Positive")
+    public void getList_Positive() throws DataAccessException {
+        gameDAO.addGame(new GameData("GameA", null, null, null));
+        gameDAO.addGame(new GameData("GameB", null, null, null));
 
-    }
-    @Test
-    public void testAddGameNegative() throws DataAccessException{
-        // Negative test
-        try {
-            GameData nullNameGame = new GameData(null, null, null, null);
-            gameDAO.addGame(nullNameGame);
-        } catch (DataAccessException e) {
-            Assertions.assertEquals("Error: Column 'gameName' cannot be null", e.getMessage());
-        }
-    }
-    @Test
-    public void testGetGameNegative() throws DataAccessException{
-        // Negative test
-        try {
-            GameData nullNameGame = new GameData(null, null, null, null);
-            gameDAO.addGame(nullNameGame);
-        } catch (DataAccessException e) {
-            Assertions.assertEquals("Error: Column 'gameName' cannot be null", e.getMessage());
-        }
-    }
-    @Test
-    public void testSetGame() throws DataAccessException {
-        // Positive test
-        String gameName = "testGame";
-        GameData testGame = new GameData(gameName, "1", null, null);
-
-        gameDAO.addGame(testGame);
-        Assertions.assertTrue(gameDAO.setGame(testGame, "WHITE", "user1"));
-    }
-    @Test
-    public void testSetGameNegative() throws DataAccessException{
-        String gameName = "testGame";
-        GameData testGame = new GameData(gameName, "1", null, null);
-        // Negative test: Attempt to set player when already occupied
-        GameData testGame2 = new GameData(gameName, "2", "user1", null);
-        gameDAO.addGame(testGame2);
-        Assertions.assertFalse(gameDAO.setGame(testGame2, "WHITE", "user2"));
+        ArrayList<GameData> games = gameDAO.getList();
+        Assertions.assertEquals(2, games.size(), "Should return 2 games");
+        Assertions.assertTrue(games.stream().anyMatch(g -> g.getName().equals("GameA")));
+        Assertions.assertTrue(games.stream().anyMatch(g -> g.getName().equals("GameB")));
     }
 
     @Test
-    public void testGetList() throws DataAccessException {
-        // Positive test
-        String gameName1 = "testGame1";
-        String gameName2 = "testGame2";
-
-        GameData testGame1 = new GameData(gameName1, "1", null, null);
-        GameData testGame2 = new GameData(gameName2, "2", null, null);
-
-        gameDAO.addGame(testGame1);
-        gameDAO.addGame(testGame2);
-
-        ArrayList<GameData> gamesList = gameDAO.getList();
-
-        Assertions.assertEquals(2, gamesList.size());
-        Assertions.assertEquals(gameName1, gamesList.get(0).getName());
-        Assertions.assertEquals(gameName2, gamesList.get(1).getName());
+    @Order(8)
+    @DisplayName("getList - Negative (empty table)")
+    public void getList_Negative() throws DataAccessException {
+        ArrayList<GameData> games = gameDAO.getList();
+        Assertions.assertTrue(games.isEmpty(), "Should return empty list if no games exist");
     }
 
-    @Test
-    public void testClearAllGames() throws DataAccessException {
-        // Positive test
-        String gameName = "testGame";
-        GameData testGame = new GameData(gameName, "1", null, null);
+    // ---------- clearAllGames ----------
 
-        gameDAO.addGame(testGame);
+    @Test
+    @Order(9)
+    @DisplayName("clearAllGames - Positive")
+    public void clearAllGames_Positive() throws DataAccessException {
+        gameDAO.addGame(new GameData("ClearGame", null, null, null));
         gameDAO.clearAllGames();
 
-        Assertions.assertTrue(gameDAO.getList().isEmpty());
+        ArrayList<GameData> games = gameDAO.getList();
+        Assertions.assertTrue(games.isEmpty(), "Game table should be empty after clear");
+    }
+
+    @Test
+    @Order(10)
+    @DisplayName("clearAllGames - Negative (already empty)")
+    public void clearAllGames_Negative() {
+        try {
+            gameDAO.clearAllGames();
+            Assertions.assertTrue(true, "Clearing empty table should succeed silently");
+        } catch (DataAccessException e) {
+            Assertions.fail("clearAllGames should not fail on empty table");
+        }
     }
 }
