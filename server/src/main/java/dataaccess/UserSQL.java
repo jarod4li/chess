@@ -1,16 +1,23 @@
 package dataaccess;
 
 import model.UserData;
+import org.mindrot.jbcrypt.BCrypt;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.mindrot.jbcrypt.BCrypt;
+
 public class UserSQL implements UserDAO {
-    public UserSQL() throws DataAccessException  {
-        configureDatabase();
+
+    public UserSQL() throws DataAccessException {
+        try {
+            configureDatabase();
+        } catch (DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
+        }
     }
+
     private static final String[] USERS_TABLE_QUERY = {
             "CREATE TABLE IF NOT EXISTS users (" +
                     "username VARCHAR(50) NOT NULL, " +
@@ -19,24 +26,27 @@ public class UserSQL implements UserDAO {
                     "PRIMARY KEY (username)" +
                     ")"
     };
-    private void configureDatabase() throws DataAccessException {
-        DatabaseManager.createDatabase();
 
-        try (Connection conn = DatabaseManager.getConnection()) {
-            for (String query : USERS_TABLE_QUERY) {
-                try (PreparedStatement statement = conn.prepareStatement(query)) {
-                    statement.executeUpdate();
+    private void configureDatabase() throws DataAccessException {
+        try {
+            DatabaseManager.createDatabase();
+            try (Connection conn = DatabaseManager.getConnection()) {
+                for (String query : USERS_TABLE_QUERY) {
+                    try (PreparedStatement statement = conn.prepareStatement(query)) {
+                        statement.executeUpdate();
+                    }
                 }
             }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
     }
 
     @Override
     public UserData getUserWithUsername(String username) throws DataAccessException {
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE username = ?")) {
+             PreparedStatement statement =
+                     conn.prepareStatement("SELECT * FROM users WHERE username = ?")) {
             statement.setString(1, username);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -45,16 +55,18 @@ public class UserSQL implements UserDAO {
                     String email = resultSet.getString("email");
                     return new UserData(fetchedUsername, password, email);
                 }
+                return null;
             }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
-        return null;
     }
+
     @Override
     public UserData getUserWithEmail(String email) throws DataAccessException {
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("SELECT * FROM users WHERE email = ?")) {
+             PreparedStatement statement =
+                     conn.prepareStatement("SELECT * FROM users WHERE email = ?")) {
             statement.setString(1, email);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -63,26 +75,29 @@ public class UserSQL implements UserDAO {
                     String fetchedEmail = resultSet.getString("email");
                     return new UserData(name, password, fetchedEmail);
                 }
+                return null;
             }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
-        return null;
     }
-
 
     @Override
     public void addUser(String username, String password, String email) throws DataAccessException {
+        // Prevent any nulls from being inserted
+        if (username == null) username = "";
+        if (password == null) password = "";
+        if (email == null) email = "";
+
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement statement = conn.prepareStatement(
                      "INSERT INTO users (username, password, email) VALUES (?, ?, ?)")) {
-
             statement.setString(1, username);
-            statement.setString(2, hashedPassword); // store hashed password
+            statement.setString(2, hashedPassword);
             statement.setString(3, email);
             statement.executeUpdate();
-
         } catch (SQLException e) {
             throw new DataAccessException("Error: " + e.getMessage());
         }
@@ -92,10 +107,11 @@ public class UserSQL implements UserDAO {
     @Override
     public void clearAllUsers() throws DataAccessException {
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("TRUNCATE TABLE users")) {
+             PreparedStatement statement =
+                     conn.prepareStatement("TRUNCATE TABLE users")) {
             statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
     }
 }

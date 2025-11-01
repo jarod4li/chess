@@ -74,4 +74,31 @@ public class DatabaseManager {
         var port = Integer.parseInt(props.getProperty("db.port"));
         connectionUrl = String.format("jdbc:mysql://%s:%d", host, port);
     }
+
+    // TEMP DEBUG: find null cells in database
+    public static void debugPrintNulls() {
+        try (Connection conn = getConnection()) {
+            var sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()";
+            try (var stmt = conn.prepareStatement(sql); var rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    var table = rs.getString(1);
+                    try (var stmt2 = conn.prepareStatement("SELECT * FROM " + table);
+                         var rs2 = stmt2.executeQuery()) {
+                        var md = rs2.getMetaData();
+                        while (rs2.next()) {
+                            for (int i = 1; i <= md.getColumnCount(); i++) {
+                                if (rs2.getString(i) == null) {
+                                    System.out.printf("⚠️ NULL FOUND in table '%s' column '%s'%n",
+                                            table, md.getColumnName(i));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("DEBUG error: " + e.getMessage());
+        }
+    }
+
 }

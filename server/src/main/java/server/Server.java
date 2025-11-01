@@ -28,27 +28,44 @@ public class Server {
         server = Javalin.create(config -> config.staticFiles.add("web"));
         serializer = new Gson();
 
-        UserDAO userDAO = new UserDataDAO();
-        AuthDAO authDAO = new AuthDataDAO();
-        GameDAO gameDAO = new GameDataDAO();
+        UserDAO userDAO;
+        AuthDAO authDAO;
+        GameDAO gameDAO;
+        try {
+            userDAO = new UserSQL();
+            authDAO = new AuthSQL();
+            gameDAO = new GameSQL();
+        } catch (DataAccessException e) {
+            throw new RuntimeException("Failed to initialize DAOs", e);
+        }
 
         userService = new UserService(userDAO, authDAO);
         gameService = new GameService(gameDAO, authDAO);
         clearService = new ClearService(userDAO, gameDAO, authDAO);
 
-        server.delete("db", this::clearApplication);
-        server.delete("session", this::logout);
-        server.post("user", this::register);
-        server.post("session", this::login);
-        server.post("game", this::createGame);
-        server.put("game", this::joinGame);
-        server.get("game", this::listGames);
+        // Routes
+        server.delete("/db", this::clearApplication);
+        server.delete("/session", this::logout);
+        server.post("/user", this::register);
+        server.post("/session", this::login);
+        server.post("/game", this::createGame);
+        server.put("/game", this::joinGame);
+        server.get("/game", this::listGames);
     }
 
     public int run(int desiredPort) {
         server.start(desiredPort);
+
+        // TEMP: print where null values are hiding
+        try {
+            dataaccess.DatabaseManager.debugPrintNulls();
+        } catch (Exception e) {
+            System.out.println("DEBUG print failed: " + e.getMessage());
+        }
+
         return server.port();
     }
+
 
     public void stop() {
         server.stop();
@@ -94,7 +111,6 @@ public class Server {
         }
     }
 
-
     private void logout(Context ctx) {
         try {
             String token = ctx.header("authorization");
@@ -108,84 +124,55 @@ public class Server {
     private void createGame(Context ctx) {
         try {
             String token = ctx.header("authorization");
-
-            GameData request = new Gson().fromJson(ctx.body(), GameData.class);
+            GameData request = serializer.fromJson(ctx.body(), GameData.class);
 
             if (request.getName() == null) {
-                ctx.status(400); // Bad Request
-                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .result(serializer.toJson(errorMessage("bad request")));
                 return;
             }
-            String gameID = gameService.registerGame(request, token);
 
-            ctx.status(200);
-            ctx.result(new Gson().toJson(new GameData(null, gameID)));
+            String gameID = gameService.registerGame(request, token);
+            ctx.status(HttpStatus.OK).result(serializer.toJson(Map.of("gameID", gameID)));
+        } catch (JsonSyntaxException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
         } catch (DataAccessException e) {
-            String message = e.getMessage();
-            if ("Error: unauthorized".equals(message)) {
-                ctx.status(401);
-            } else if ("Error: bad request".equals(message)) {
-                ctx.status(400);
-            } else {
-                ctx.status(500);
-            }
-            ctx.result(new Gson().toJson(Map.of("message", e.getMessage())));
+            handleError(ctx, e);
         }
     }
-
-
 
     private void joinGame(Context ctx) {
         try {
             String token = ctx.header("authorization");
-
-            GameData request = new Gson().fromJson(ctx.body(), GameData.class);
+            GameData request = serializer.fromJson(ctx.body(), GameData.class);
 
             String color = request.getPlayerColor();
-            if (color == null || color.isEmpty() ||
-                    !(color.equals("WHITE") || color.equals("BLACK"))) {
-                ctx.status(400); // Bad Request
-                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
-                return;
-            }
             String gameID = request.getGameID();
-            if (gameID == null || gameID.isEmpty()) {
-                ctx.status(400); // Bad Request
-                ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+
+            if (color == null || (!color.equals("WHITE") && !color.equals("BLACK")) ||
+                    gameID == null || gameID.isEmpty()) {
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .result(serializer.toJson(errorMessage("bad request")));
                 return;
             }
+
             gameService.joinGame(request, token);
-
-            ctx.status(200);
-            ctx.result(new Gson().toJson(Map.of("message", "Joined game successfully")));
-
+            ctx.status(HttpStatus.OK)
+                    .result(serializer.toJson(Map.of("message", "Joined game successfully")));
+        } catch (JsonSyntaxException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .result(serializer.toJson(errorMessage("bad request")));
         } catch (DataAccessException e) {
-            String message = e.getMessage();
-            if ("Error: unauthorized".equals(message)) {
-                ctx.status(401); // Unauthorized
-            } else if ("Error: already taken".equals(message)) {
-                ctx.status(403); // Forbidden
-            } else if ("Error: bad request".equals(message)) {
-                ctx.status(400);
-            } else {
-                ctx.status(500);
-            }
-            ctx.result(new Gson().toJson(Map.of("message", message)));
-        } catch (Exception e) {
-            ctx.status(400);
-            ctx.result(new Gson().toJson(Map.of("message", "Error: bad request")));
+            handleError(ctx, e);
         }
     }
-
-
-
 
     private void listGames(Context ctx) {
         try {
             String token = ctx.header("authorization");
             ArrayList<GameData> games = gameService.listGames(token);
-            ctx.status(HttpStatus.OK)
-                    .result(serializer.toJson(Map.of("games", games)));
+            ctx.status(HttpStatus.OK).result(serializer.toJson(Map.of("games", games)));
         } catch (DataAccessException e) {
             handleError(ctx, e);
         }
@@ -194,7 +181,7 @@ public class Server {
 
     private void handleError(Context ctx, DataAccessException e) {
         String msg = e.getMessage();
-        if (msg == null) {msg = "Error: internal server error";}
+        if (msg == null) msg = "Error: internal server error";
 
         switch (msg) {
             case "Error: bad request" -> ctx.status(HttpStatus.BAD_REQUEST);
@@ -209,5 +196,4 @@ public class Server {
     private Map<String, String> errorMessage(String message) {
         return Map.of("message", "Error: " + message);
     }
-
 }

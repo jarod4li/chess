@@ -41,18 +41,26 @@ public class GameSQL implements GameDAO{
     }
     private int count = 1;
     @Override
-    public void addGame(GameData newGame) throws DataAccessException{
+    public void addGame(GameData newGame) throws DataAccessException {
+        String gameName = newGame.getName() == null ? "" : newGame.getName();
         String gameID = String.valueOf(count);
-        if (newGame.getGame() == null){
+        String white = newGame.getWhite() == null ? "" : newGame.getWhite();
+        String black = newGame.getBlack() == null ? "" : newGame.getBlack();
+
+        if (newGame.getGame() == null) {
             newGame.setGame();
         }
+
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("INSERT INTO games (gameName, gameID, whiteUsername, blackUsername, game) VALUES (?, ?, ?, ?, ?)")) {
-            statement.setString(1, newGame.getName());
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO games (gameName, gameID, whiteUsername, blackUsername, game) VALUES (?, ?, ?, ?, ?)")) {
+
+            statement.setString(1, gameName);
             statement.setString(2, gameID);
-            statement.setString(3, newGame.getWhite());
-            statement.setString(4, newGame.getBlack());
+            statement.setString(3, white); // empty string instead of null
+            statement.setString(4, black); // empty string instead of null
             statement.setString(5, serializeGame(newGame.getGame()));
+
             statement.executeUpdate();
             count++;
 
@@ -60,6 +68,9 @@ public class GameSQL implements GameDAO{
             throw new DataAccessException("Error: " + e.getMessage());
         }
     }
+
+
+
     @Override
     public String getGameID(String gameName) throws DataAccessException{
         try (Connection conn = DatabaseManager.getConnection();
@@ -92,103 +103,103 @@ public class GameSQL implements GameDAO{
         return false;
     }
     @Override
-    public GameData getGame(String gameID) throws DataAccessException{
+    public GameData getGame(String gameID) throws DataAccessException {
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("SELECT gameName, whiteUsername, blackUsername, game FROM games WHERE gameID = ?")) {
+             PreparedStatement statement = conn.prepareStatement(
+                     "SELECT gameName, whiteUsername, blackUsername, game FROM games WHERE gameID = ?")) {
             statement.setString(1, gameID);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    String whiteUsername = resultSet.getString("whiteUsername");
-                    String blackUsername = resultSet.getString("blackUsername");
-                    String gameName = resultSet.getString("gameName");
-                    String game = resultSet.getString("game");
-                    return new GameData(gameName, gameID, whiteUsername, blackUsername, deserializeGame(game));
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    String gameName = rs.getString("gameName");
+                    String white    = rs.getString("whiteUsername");
+                    String black    = rs.getString("blackUsername");
+                    String gameJson = rs.getString("game");
+
+                    // Convert empty strings back to null for API output
+                    white = (white == null || white.isEmpty()) ? null : white;
+                    black = (black == null || black.isEmpty()) ? null : black;
+
+                    return new GameData(gameName, gameID, white, black, deserializeGame(gameJson));
                 }
+                return null;
             }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
-        return null;
     }
+
     @Override
-    public Boolean setGame(GameData currGame, String playerColor, String username) throws DataAccessException{
+    public Boolean setGame(GameData currGame, String playerColor, String username) throws DataAccessException {
         GameData newGame = getGame(currGame.getGameID());
-        if (newGame == null){
+        if (newGame == null) {
             return false;
         }
+
         if (playerColor == null) {
             return true;
         }
-        if (playerColor.equals("WHITE") && (newGame.getWhite() == null)){
+
+        if (playerColor.equals("WHITE") && (newGame.getWhite() == null || newGame.getWhite().isEmpty())) {
             newGame.setWhite(username);
-            try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement statement = conn.prepareStatement("DELETE FROM games WHERE gameID = ?")) {
-                statement.setString(1, newGame.getGameID());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new DataAccessException("Error: " + e.getMessage());
-            }
-            try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement statement = conn.prepareStatement("INSERT INTO games (gameName, gameID, whiteUsername, blackUsername, game) Values(?,?,?,?,?) ")) {
-                statement.setString(1, newGame.getName());
-                statement.setString(2, newGame.getGameID());
-                statement.setString(3, username);
-                statement.setString(4, newGame.getBlack());
-                statement.setString(5, serializeGame(newGame.getGame()));
-
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new DataAccessException("Error: " + e.getMessage());
-            }
-            return true;
-        }
-        else if (playerColor.equals("BLACK") && (newGame.getBlack() == null)){
+        } else if (playerColor.equals("BLACK") && (newGame.getBlack() == null || newGame.getBlack().isEmpty())) {
             newGame.setBlack(username);
-            try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement statement = conn.prepareStatement("DELETE FROM games WHERE gameID = ?")) {
-                statement.setString(1, newGame.getGameID());
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new DataAccessException("Error: " + e.getMessage());
-            }
-            try (Connection conn = DatabaseManager.getConnection();
-                 PreparedStatement statement = conn.prepareStatement("INSERT INTO games (gameName, gameID, whiteUsername, blackUsername, game) Values(?,?,?,?,?) ")) {
-                statement.setString(1, newGame.getName());
-                statement.setString(2, newGame.getGameID());
-                statement.setString(3, newGame.getWhite());
-                statement.setString(4, username);
-                statement.setString(5, serializeGame(newGame.getGame()));
-                statement.executeUpdate();
+        } else {
+            return false; // color already taken
+        }
 
-            } catch (SQLException e) {
-                throw new DataAccessException("Error: " + e.getMessage());
-            }
-            return true;
+        // Delete the old game entry before inserting the updated one
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement("DELETE FROM games WHERE gameID = ?")) {
+            statement.setString(1, newGame.getGameID());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error deleting game: " + e.getMessage());
         }
-        else {
-            return false;
+
+        // Re-insert the updated game (ensure no nulls)
+        try (Connection conn = DatabaseManager.getConnection();
+             PreparedStatement statement = conn.prepareStatement(
+                     "INSERT INTO games (gameName, gameID, whiteUsername, blackUsername, game) VALUES (?, ?, ?, ?, ?)")) {
+            statement.setString(1, newGame.getName() == null ? "" : newGame.getName());
+            statement.setString(2, newGame.getGameID());
+            statement.setString(3, newGame.getWhite() == null ? "" : newGame.getWhite());
+            statement.setString(4, newGame.getBlack() == null ? "" : newGame.getBlack());
+            statement.setString(5, serializeGame(newGame.getGame()));
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new DataAccessException("Error inserting updated game: " + e.getMessage());
         }
+
+        return true;
     }
+
     @Override
-    public ArrayList<GameData> getList() throws DataAccessException{
+    public ArrayList<GameData> getList() throws DataAccessException {
         ArrayList<GameData> games = new ArrayList<>();
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("SELECT gameName, gameID, whiteUsername, blackUsername, game FROM games")) {
-            try (ResultSet resultSet = statement.executeQuery()) {
-                while (resultSet.next()) {
-                    String gameName = resultSet.getString("gameName");
-                    String gameID = resultSet.getString("gameID");
-                    String whiteUsername = resultSet.getString("whiteUsername");
-                    String blackUsername = resultSet.getString("blackUsername");
-                    String game = resultSet.getString("game");
-                    games.add(new GameData(gameName, gameID, whiteUsername, blackUsername, deserializeGame(game)));
+             PreparedStatement statement = conn.prepareStatement(
+                     "SELECT gameName, gameID, whiteUsername, blackUsername, game FROM games")) {
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    String gameName = rs.getString("gameName");
+                    String gameID   = rs.getString("gameID");
+                    String white    = rs.getString("whiteUsername");
+                    String black    = rs.getString("blackUsername");
+                    String gameJson = rs.getString("game");
+
+                    // Convert empty strings back to null for API output
+                    white = (white == null || white.isEmpty()) ? null : white;
+                    black = (black == null || black.isEmpty()) ? null : black;
+
+                    games.add(new GameData(gameName, gameID, white, black, deserializeGame(gameJson)));
                 }
                 return games;
             }
-        } catch (SQLException e) {
-            throw new DataAccessException("Error: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
     }
+
     @Override
     public void clearAllGames() throws DataAccessException{
         count = 1;
@@ -208,16 +219,22 @@ public class GameSQL implements GameDAO{
 
     @Override
     public void updateGame(String gameID, GameData updatedGameData) throws DataAccessException {
+        String whiteUser = updatedGameData.getWhite() == null ? "" : updatedGameData.getWhite();
+        String blackUser = updatedGameData.getBlack() == null ? "" : updatedGameData.getBlack();
+        String gameName  = updatedGameData.getName()  == null ? "" : updatedGameData.getName();
+
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement("UPDATE games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?")) {
-            statement.setString(1, updatedGameData.getWhite());
-            statement.setString(2, updatedGameData.getBlack());
-            statement.setString(3, updatedGameData.getName());
+             PreparedStatement statement = conn.prepareStatement(
+                     "UPDATE games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?")) {
+            statement.setString(1, whiteUser);
+            statement.setString(2, blackUser);
+            statement.setString(3, gameName);
             statement.setString(4, serializeGame(updatedGameData.getGame()));
             statement.setString(5, gameID);
             statement.executeUpdate();
-        } catch (SQLException e) {
-            throw new DataAccessException("Error while updating game: " + e.getMessage());
+        } catch (SQLException | DataAccessException e) {
+            throw new DataAccessException("Error: internal server error");
         }
     }
+
 }

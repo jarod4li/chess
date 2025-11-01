@@ -5,7 +5,7 @@ import dataaccess.DataAccessException;
 import dataaccess.UserDAO;
 import model.AuthData;
 import model.UserData;
-//import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.mindrot.jbcrypt.BCrypt;
 
 public class UserService {
     private UserDAO user;
@@ -43,19 +43,17 @@ public class UserService {
     public AuthData logIn(UserData newUser) throws DataAccessException {
         String username = newUser.getName();
         String password = newUser.getPassword();
-        AuthData authToken = null;
 
         UserData storedUser = user.getUserWithUsername(username);
         if (storedUser == null) {
             throw new DataAccessException("Error: unauthorized");
         }
 
-        if (!storedUser.getPassword().equals(password)) {
+        if (!BCrypt.checkpw(password, storedUser.getPassword())) {
             throw new DataAccessException("Error: unauthorized");
         }
 
-        authToken = auth.addAuthToken(username);
-        return authToken;
+        return auth.addAuthToken(username);
     }
 
 
