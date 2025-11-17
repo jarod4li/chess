@@ -12,7 +12,7 @@ public class ServerFacadeTests {
     // Test data
     private final String username = "Jared";
     private final String password = "1234";
-    private final String email = "jared@gmail";   // add ".com" if your server validates emails strictly
+    private final String email = "jared@gmail";
     private final String gameName = "new game";
 
     private static Server server;
@@ -21,8 +21,8 @@ public class ServerFacadeTests {
     @BeforeAll
     public static void init() {
         server = new Server();
-        var port = server.run(0);              // start HTTP server on an open port
-        serverFacade = new ServerFacade(port); // adjust ctor if yours is different
+        var port = server.run(0);
+        serverFacade = new ServerFacade(port);
         System.out.println("Started test HTTP server on " + port);
     }
 
@@ -73,4 +73,79 @@ public class ServerFacadeTests {
         Assertions.assertDoesNotThrow(() -> serverFacade.logout(token));
     }
 
+    @Test
+    public void testLogoutNegative() {
+        String token1 = serverFacade.register(username, password, email);
+        serverFacade.logout(token1);
+
+        String token2 = serverFacade.login(username, password);
+        Assertions.assertNotEquals(token1, token2);
+    }
+
+    @Test
+    public void testCreateGamePositive() {
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+        Assertions.assertNotNull(gameID);
+    }
+
+    @Test
+    public void testCreateGameNegative() {
+        String tokenResponse = serverFacade.createGame(gameName, "random token");
+        Assertions.assertEquals("Error: unauthorized", tokenResponse);
+    }
+
+    @Test
+    public void testJoinGamePositive() {
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+
+        boolean joinGameSuccess = serverFacade.joinGame(gameID, "WHITE", token);
+        Assertions.assertTrue(joinGameSuccess);
+    }
+
+    @Test
+    public void testJoinGameNegative() {
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+
+        boolean joinGameSuccess = serverFacade.joinGame("2", "WHITE", token);
+        Assertions.assertFalse(joinGameSuccess);
+    }
+
+    @Test
+    public void testListAllGamesPositive() {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outputStream));
+
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+
+        Assertions.assertDoesNotThrow(() -> serverFacade.listAllGames(token));
+
+        System.setOut(System.out); // restore stdout
+    }
+
+    @Test
+    public void testListAllGamesNegative() {
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+
+        Assertions.assertDoesNotThrow(() -> serverFacade.listAllGames("randomToken"));
+    }
+
+    @Test
+    public void testClear() {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(outputStream));
+
+        String token = serverFacade.register(username, password, email);
+        String gameID = serverFacade.createGame(gameName, token);
+        serverFacade.clear();
+
+        System.setOut(System.out); // restore stdout
+
+        String printedMessage = outputStream.toString();
+        Assertions.assertFalse(printedMessage.contains("Failed"));
+    }
 }
