@@ -2,6 +2,7 @@ package ui;
 
 import com.google.gson.*;
 import model.AuthData;
+import model.GameData;
 import model.UserData;
 
 import java.io.InputStreamReader;
@@ -69,7 +70,26 @@ public class ServerFacade {
         } catch (Exception ignored) {}
     }
 
-    public String createGame(String gameName, String token) { return null; }
+    public String createGame(String gameName, String token) {
+        try {
+            GameData game = new GameData(gameName);
+            URL url = new URL(urlBeginning + portNumber + "/game");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Authorization", token);
+            conn.setRequestProperty("Content-Type", "application/json");
+
+            conn.getOutputStream().write(new Gson().toJson(game).getBytes());
+            conn.connect();
+
+            return conn.getResponseCode() == 200
+                    ? new Gson().fromJson(new InputStreamReader(conn.getInputStream()), GameData.class).getGameID()
+                    : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 
     public boolean joinGame(String gameID, String playerColor, String token){ return false; }
 
