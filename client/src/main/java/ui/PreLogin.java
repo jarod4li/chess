@@ -2,11 +2,16 @@ package ui;
 
 import java.util.Scanner;
 
+import static ui.PostLogin.postLogin;
+
 public class PreLogin {
     private static Scanner scanner = new Scanner(System.in);
-    private static ServerFacade facade = new ServerFacade();
+    private static ServerFacade serverFacade = null;
+    private static int portNumber;
 
-    public static void preLogin(){
+    public static void preLogin(int portNumber){
+        serverFacade = new ServerFacade(portNumber);
+        PreLogin.portNumber = portNumber;
         String username;
         String password;
         String email;
@@ -30,13 +35,14 @@ public class PreLogin {
                     System.out.print("email: ");
                     email = scanner.nextLine().trim();
 
-                    token = facade.register(username, password, email);
+                    token = serverFacade.register(username, password, email);
 
                     if (token != null){
                         System.out.println("\nRegistration success! Welcome " + username);
-                        PostLogin.postLogin(token);
+                        postLogin(token, portNumber, serverFacade);
                         break;
                     }
+
 
                 case "login":
                     System.out.print("Username: ");
@@ -44,7 +50,7 @@ public class PreLogin {
                     System.out.print("Password: ");
                     password = scanner.nextLine().trim();
 
-                    token = facade.login(username, password);
+                    token = serverFacade.login(username, password);
 
                     if (token != null){
                         System.out.println("\nLogin success! Welcome " + username);
@@ -52,7 +58,7 @@ public class PreLogin {
                     else{
                         System.out.println("No success :(");
                     }
-                    PostLogin.postLogin(token);
+                    postLogin(token, portNumber, serverFacade);
 
                     break;
                 case "help":

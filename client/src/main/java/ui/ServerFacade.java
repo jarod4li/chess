@@ -3,40 +3,40 @@ package ui;
 import com.google.gson.*;
 import model.AuthData;
 import model.GameData;
+import model.UserData;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 public class ServerFacade {
     private final String urlBeginning = "http://localhost:";
-    private int portNumber = 8080;
+    private int portNumber;
     private Map<String, String> listGames = new HashMap<>();
 
-    public ServerFacade(){
+    public ServerFacade(int portNumber){
+        this.portNumber = portNumber;
     }
 
 
     public String register(String username, String password, String email){
         try{
-            JsonObject userData = new JsonObject();
+            UserData user = new UserData(username, password, email);
 
             URL url = new URL(urlBeginning + portNumber + "/user");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json");
-            userData.addProperty("username", username);
-            userData.addProperty("password", password);
-            userData.addProperty("email", email);
 
-            String userDataJson = new Gson().toJson(userData);
+            String jsonData = new Gson().toJson(user);
+            conn.getOutputStream().write(jsonData.getBytes());
 
-            conn.getOutputStream().write(userDataJson.getBytes());
             conn.connect();
 
             if (conn.getResponseCode() == 200){
@@ -50,6 +50,7 @@ public class ServerFacade {
                 String error = JsonParser.parseReader(reader).getAsJsonObject().get("message").getAsString();
 
                 System.out.println(error);
+                return null;
             }
 
         }
@@ -60,18 +61,17 @@ public class ServerFacade {
     }
     public String login(String username, String password) {
         try {
-            JsonObject userData = new JsonObject();
+            UserData user = new UserData(username, password, null);
 
             URL url = new URL(urlBeginning + portNumber + "/session");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-type", "application/json");
-            userData.addProperty("username", username);
-            userData.addProperty("password", password);
-            String jsonData = new Gson().toJson(userData);
 
+            String jsonData = new Gson().toJson(user);
             conn.getOutputStream().write(jsonData.getBytes());
+
             conn.connect();
 
             if (conn.getResponseCode() == 200) {
@@ -84,6 +84,7 @@ public class ServerFacade {
                 String error = JsonParser.parseReader(reader).getAsJsonObject().get("message").getAsString();
 
                 System.out.println(error);
+                return null;
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -95,7 +96,7 @@ public class ServerFacade {
             URL url = new URL(urlBeginning + portNumber + "/session");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("DELETE");
-            conn.setRequestProperty("Authorization", "token");
+            conn.setRequestProperty("Authorization", token);
             conn.connect();
 
             if (conn.getResponseCode() == 200) {
@@ -120,8 +121,9 @@ public class ServerFacade {
             conn.setRequestMethod("POST");
             conn.setRequestProperty("authorization", token);
             conn.setDoOutput(true);
-            GameData currGame = new GameData(gameName);
             conn.setRequestProperty("Content-Type", "application/json");
+
+            GameData currGame = new GameData(gameName);
             String jsonData = new Gson().toJson(currGame);
 
             conn.getOutputStream().write(jsonData.getBytes());
@@ -155,10 +157,13 @@ public class ServerFacade {
             conn.setRequestMethod("PUT");
             conn.setRequestProperty("authorization", token);
             conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json");
 
             String jsonData = new Gson().toJson(game);
             conn.getOutputStream().write(jsonData.getBytes());
             conn.connect();
+
+
 
             if (conn.getResponseCode() == 200) {
 
@@ -176,7 +181,7 @@ public class ServerFacade {
         }
         return false;
     }
-    public void listAllGames(String token){
+    public GameData[] listAllGames(String token){
         try {
             URL url = new URL(urlBeginning + portNumber + "/game");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -185,58 +190,18 @@ public class ServerFacade {
             conn.setDoOutput(true);
 
             if (conn.getResponseCode() == 200) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder resp = new StringBuilder();
-                while (reader.readLine() != null) {
-                    resp.append(reader.readLine());
+
+                InputStreamReader reader = new InputStreamReader(conn.getInputStream());
+                record ListGames(GameData[] games){
                 }
-                reader.close();
-                System.out.println("Games:");
-                JsonArray games = JsonParser.parseString(resp.toString()).getAsJsonObject().getAsJsonArray("games");
-                if (games != null){
-                    for (JsonElement game : games) {
-                        String gameID = game.getAsJsonObject().get("gameID").getAsString();
-                        String gameName = game.getAsJsonObject().get("gameName").getAsString();
-                        JsonElement whiteElement = game.getAsJsonObject().get("whiteUsername");
-                        String whiteUsername;
-                        if (whiteElement != null) {
-                            whiteUsername = whiteElement.getAsString();
-                        } else {
-                            whiteUsername = null;
-                        }
-                        JsonElement blackElement = game.getAsJsonObject().get("whiteUsername");
-                        String blackUsername;
-                        if (whiteElement != null) {
-                            blackUsername = blackElement.getAsString();
-                        } else {
-                            blackUsername = null;
-                        }
-                        // Print the list of games
-                        System.out.println("Games: ");
-                        System.out.print("Game ID: " + gameID + ", Game name: " + gameName);
-                        if (whiteUsername != null) {
-                            System.out.print("White player: " + whiteUsername + ", ");
-                        } else {
-                            System.out.print("White player: empty" + ", ");
-                        }
-                        if (blackUsername != null) {
-                            System.out.println("Black player: " + blackUsername + ", ");
-                        } else {
-                            System.out.println("Black player: empty");
-                        }
-                    }
-                }
-                else {
-                    System.out.println("List of games is empty.");
-                }
-            } else {
-                String error = conn.getResponseMessage();
-                System.out.println("Error: " + error);
+                ListGames games = new Gson().fromJson(reader, ListGames.class);
+                return games.games();
             }
         }
         catch (IOException e){
             e.printStackTrace();
         }
+        return null;
     }
     public void clear() {
         try {
