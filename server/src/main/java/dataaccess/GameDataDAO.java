@@ -80,13 +80,4 @@ public class GameDataDAO implements GameDAO {
         gamesList.clear();
     }
 
-//    @Override
-//    public void updateGame(String gameID, GameData updatedGame) throws DataAccessException {
-//        for (GameData game:gamesList){
-//            if (game.getGameID().equals(gameID)){
-//                gamesList.remove(game);
-//                gamesList.add(updatedGame);
-//            }
-//        }
-//    }
 }
