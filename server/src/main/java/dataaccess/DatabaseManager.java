@@ -1,6 +1,12 @@
 package dataaccess;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 public class DatabaseManager {
@@ -19,7 +25,7 @@ public class DatabaseManager {
     /**
      * Creates the database if it does not already exist.
      */
-    static public void createDatabase() throws DataAccessException {
+    public static void createDatabase() throws DataAccessException {
         var statement = "CREATE DATABASE IF NOT EXISTS " + databaseName;
         try (var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
              var preparedStatement = conn.prepareStatement(statement)) {
@@ -33,17 +39,10 @@ public class DatabaseManager {
      * Create a connection to the database and sets the catalog based upon the
      * properties specified in db.properties. Connections to the database should
      * be short-lived, and you must close the connection when you are done with it.
-     * The easiest way to do that is with a try-with-resource block.
-     * <br/>
-     * <code>
-     * try (var conn = DatabaseManager.getConnection()) {
-     * // execute SQL statements.
-     * }
-     * </code>
      */
     static Connection getConnection() throws DataAccessException {
         try {
-            //do not wrap the following line with a try-with-resources
+            // do not wrap the following line with a try-with-resources
             var conn = DriverManager.getConnection(connectionUrl, dbUsername, dbPassword);
             conn.setCatalog(databaseName);
             return conn;
@@ -52,8 +51,24 @@ public class DatabaseManager {
         }
     }
 
+    public static void initializeTables(String[] tableQueries) throws DataAccessException {
+        createDatabase();
+        try (Connection conn = getConnection()) {
+            for (String query : tableQueries) {
+                try (PreparedStatement statement = conn.prepareStatement(query)) {
+                    statement.executeUpdate();
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Error: internal server error");
+        }
+    }
+
+
     private static void loadPropertiesFromResources() {
-        try (var propStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("db.properties")) {
+        try (var propStream = Thread.currentThread()
+                .getContextClassLoader()
+                .getResourceAsStream("db.properties")) {
             if (propStream == null) {
                 throw new Exception("Unable to load db.properties");
             }
@@ -78,27 +93,49 @@ public class DatabaseManager {
     // TEMP DEBUG: find null cells in database
     public static void debugPrintNulls() {
         try (Connection conn = getConnection()) {
-            var sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()";
-            try (var stmt = conn.prepareStatement(sql); var rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    var table = rs.getString(1);
-                    try (var stmt2 = conn.prepareStatement("SELECT * FROM " + table);
-                         var rs2 = stmt2.executeQuery()) {
-                        var md = rs2.getMetaData();
-                        while (rs2.next()) {
-                            for (int i = 1; i <= md.getColumnCount(); i++) {
-                                if (rs2.getString(i) == null) {
-                                    System.out.printf("⚠️ NULL FOUND in table '%s' column '%s'%n",
-                                            table, md.getColumnName(i));
-                                }
-                            }
-                        }
-                    }
-                }
+            List<String> tables = getAllTables(conn);
+            for (String table : tables) {
+                printNullsInTable(conn, table);
             }
         } catch (Exception e) {
             System.out.println("DEBUG error: " + e.getMessage());
         }
     }
 
+    private static List<String> getAllTables(Connection conn) throws SQLException {
+        List<String> tables = new ArrayList<>();
+        String sql = "SELECT table_name FROM information_schema.tables WHERE table_schema = DATABASE()";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                tables.add(rs.getString(1));
+            }
+        }
+
+        return tables;
+    }
+
+    private static void printNullsInTable(Connection conn, String table) throws SQLException {
+        String query = "SELECT * FROM " + table;
+
+        try (PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            var md = rs.getMetaData();
+            int columnCount = md.getColumnCount();
+
+            while (rs.next()) {
+                for (int i = 1; i <= columnCount; i++) {
+                    if (rs.getString(i) == null) {
+                        System.out.printf(
+                                "⚠️ NULL FOUND in table '%s' column '%s'%n",
+                                table,
+                                md.getColumnName(i)
+                        );
+                    }
+                }
+            }
+        }
+    }
 }

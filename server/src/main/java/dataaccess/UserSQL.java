@@ -11,11 +11,7 @@ import java.sql.SQLException;
 public class UserSQL implements UserDAO {
 
     public UserSQL() throws DataAccessException {
-        try {
-            configureDatabase();
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error: internal server error");
-        }
+        DatabaseManager.initializeTables(USERS_TABLE_QUERY);
     }
 
     private static final String[] USERS_TABLE_QUERY = {
@@ -27,20 +23,6 @@ public class UserSQL implements UserDAO {
                     ")"
     };
 
-    private void configureDatabase() throws DataAccessException {
-        try {
-            DatabaseManager.createDatabase();
-            try (Connection conn = DatabaseManager.getConnection()) {
-                for (String query : USERS_TABLE_QUERY) {
-                    try (PreparedStatement statement = conn.prepareStatement(query)) {
-                        statement.executeUpdate();
-                    }
-                }
-            }
-        } catch (SQLException | DataAccessException e) {
-            throw new DataAccessException("Error: internal server error");
-        }
-    }
 
     @Override
     public UserData getUserWithUsername(String username) throws DataAccessException {

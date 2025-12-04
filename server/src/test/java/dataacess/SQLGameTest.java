@@ -34,8 +34,6 @@ public class SQLGameTest {
         Assertions.assertEquals(TEST_GAME_NAME, retrieved.getName());
     }
 
-    // ---------- addGame ----------
-
     @Test
     @Order(1)
     @DisplayName("addGame - Positive")
@@ -52,8 +50,6 @@ public class SQLGameTest {
                 gameDAO.addGame(new GameData(null, null, null, null)));
     }
 
-    // ---------- getGame ----------
-
     @Test
     @Order(3)
     @DisplayName("getGame - Positive")
@@ -69,8 +65,6 @@ public class SQLGameTest {
         GameData game = gameDAO.getGame("999");
         Assertions.assertNull(game);
     }
-
-    // ---------- setGame ----------
 
     @Test
     @Order(5)
@@ -90,8 +84,6 @@ public class SQLGameTest {
         Assertions.assertFalse(gameDAO.setGame(game, "WHITE", "user2"));
     }
 
-    // ---------- getList ----------
-
     @Test
     @Order(7)
     @DisplayName("getList - Positive")
@@ -110,8 +102,6 @@ public class SQLGameTest {
         ArrayList<GameData> games = gameDAO.getList();
         Assertions.assertTrue(games.isEmpty());
     }
-
-    // ---------- clearAllGames ----------
 
     @Test
     @Order(9)

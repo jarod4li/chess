@@ -9,11 +9,7 @@ import java.sql.SQLException;
 public class AuthSQL implements AuthDAO {
 
     public AuthSQL() throws DataAccessException {
-        try {
-            configureDatabase();
-        } catch (DataAccessException e) {
-            throw new DataAccessException("Error: internal server error");
-        }
+        DatabaseManager.initializeTables(AUTH_TABLE_QUERY);
     }
 
     private static final String[] AUTH_TABLE_QUERY = {
@@ -24,20 +20,6 @@ public class AuthSQL implements AuthDAO {
                     ")"
     };
 
-    private void configureDatabase() throws DataAccessException {
-        try {
-            DatabaseManager.createDatabase();
-            try (Connection conn = DatabaseManager.getConnection()) {
-                for (String query : AUTH_TABLE_QUERY) {
-                    try (PreparedStatement statement = conn.prepareStatement(query)) {
-                        statement.executeUpdate();
-                    }
-                }
-            }
-        } catch (SQLException | DataAccessException e) {
-            throw new DataAccessException("Error: internal server error");
-        }
-    }
 
     @Override
     public AuthData addAuthToken(String username) throws DataAccessException {
