@@ -217,24 +217,5 @@ public class GameSQL implements GameDAO{
         return gson.fromJson(json, ChessGame.class);
     }
 
-    @Override
-    public void updateGame(String gameID, GameData updatedGameData) throws DataAccessException {
-        String whiteUser = updatedGameData.getWhite() == null ? "" : updatedGameData.getWhite();
-        String blackUser = updatedGameData.getBlack() == null ? "" : updatedGameData.getBlack();
-        String gameName  = updatedGameData.getName()  == null ? "" : updatedGameData.getName();
-
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement statement = conn.prepareStatement(
-                     "UPDATE games SET whiteUsername = ?, blackUsername = ?, gameName = ?, game = ? WHERE gameID = ?")) {
-            statement.setString(1, whiteUser);
-            statement.setString(2, blackUser);
-            statement.setString(3, gameName);
-            statement.setString(4, serializeGame(updatedGameData.getGame()));
-            statement.setString(5, gameID);
-            statement.executeUpdate();
-        } catch (SQLException | DataAccessException e) {
-            throw new DataAccessException("Error: internal server error");
-        }
-    }
 
 }
