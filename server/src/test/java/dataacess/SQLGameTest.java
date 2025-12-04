@@ -9,6 +9,9 @@ import java.util.ArrayList;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class SQLGameTest {
 
+    private static final String TEST_GAME_NAME = "testGame";
+    private static final String TEST_GAME_ID = "1";
+
     private GameSQL gameDAO;
 
     @BeforeEach
@@ -21,18 +24,24 @@ public class SQLGameTest {
         gameDAO.clearAllGames();
     }
 
+    private void insertTestGame() throws DataAccessException {
+        gameDAO.addGame(new GameData(TEST_GAME_NAME));
+    }
+
+    private void assertTestGameRetrieved() throws DataAccessException {
+        GameData retrieved = gameDAO.getGame(TEST_GAME_ID);
+        Assertions.assertNotNull(retrieved);
+        Assertions.assertEquals(TEST_GAME_NAME, retrieved.getName());
+    }
+
     // ---------- addGame ----------
 
     @Test
     @Order(1)
     @DisplayName("addGame - Positive")
     public void addGamePositive() throws DataAccessException {
-        GameData testGame = new GameData("testGame");
-        gameDAO.addGame(testGame);
-
-        GameData retrieved = gameDAO.getGame("1");
-        Assertions.assertNotNull(retrieved);
-        Assertions.assertEquals("testGame", retrieved.getName());
+        insertTestGame();
+        assertTestGameRetrieved();
     }
 
     @Test
@@ -49,21 +58,17 @@ public class SQLGameTest {
     @Order(3)
     @DisplayName("getGame - Positive")
     public void getGamePositive() throws DataAccessException {
-        GameData testGame = new GameData("testGame");
-        gameDAO.addGame(testGame);
-        GameData retrieved = gameDAO.getGame("1");
-
-        Assertions.assertNotNull(retrieved);
-        Assertions.assertEquals("testGame", retrieved.getName());
+        insertTestGame();
+        assertTestGameRetrieved();
     }
 
-//    @Test
-//    @Order(4)
-//    @DisplayName("getGame - Negative (not found)")
-//    public void getGameNegative() throws DataAccessException {
-//        GameData game = gameDAO.getGame("999");
-//        Assertions.assertNull(game);
-//    }
+    @Test
+    @Order(4)
+    @DisplayName("getGame - Negative (not found)")
+    public void getGameNegative() throws DataAccessException {
+        GameData game = gameDAO.getGame("999");
+        Assertions.assertNull(game);
+    }
 
     // ---------- setGame ----------
 
