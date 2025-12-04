@@ -85,9 +85,15 @@ public class UserSQL implements UserDAO {
     @Override
     public void addUser(String username, String password, String email) throws DataAccessException {
         // Prevent any nulls from being inserted
-        if (username == null) username = "";
-        if (password == null) password = "";
-        if (email == null) email = "";
+        if (username == null) {
+            username = "";
+        }
+        if (password == null) {
+            password = "";
+        }
+        if (email == null) {
+            email = "";
+        }
 
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
 
@@ -102,6 +108,7 @@ public class UserSQL implements UserDAO {
             throw new DataAccessException("Error: " + e.getMessage());
         }
     }
+
 
 
     @Override

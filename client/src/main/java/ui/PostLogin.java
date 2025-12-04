@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 public class PostLogin {
-    private final static Scanner scanner = new Scanner(System.in);
+    private final static Scanner scannerItem = new Scanner(System.in);
     private static ServerFacade serverFacade;
 
 
@@ -25,11 +25,11 @@ public class PostLogin {
         System.out.println("Logout");
 
         while (true){
-            String input = scanner.nextLine().toLowerCase();
+            String input = scannerItem.nextLine().toLowerCase();
             switch (input) {
                 case "create" -> {
                     System.out.println("Enter game name:");
-                    gameName = scanner.nextLine();
+                    gameName = scannerItem.nextLine();
                     gameID = serverFacade.createGame(gameName, token);
                     if (gameID != null) {
                         postLogin(token, portNumber, serverFacade);
@@ -37,13 +37,13 @@ public class PostLogin {
                 }
                 case "join" -> {
                     System.out.println("Enter game ID:");
-                    gameID = scanner.nextLine();
+                    gameID = scannerItem.nextLine();
                     System.out.println("Join white, black, or none?");
-                    playerColor = scanner.next().toUpperCase();
+                    playerColor = scannerItem.next().toUpperCase();
 
                     while (!(playerColor.equals("WHITE") || playerColor.equals("BLACK") || playerColor.equals("NONE"))) {
                         System.out.println("Please choose white, black, or none.");
-                        playerColor = scanner.next().toUpperCase();
+                        playerColor = scannerItem.next().toUpperCase();
                     }
                     if (playerColor.equals("NONE")) {
                         playerColor = null;

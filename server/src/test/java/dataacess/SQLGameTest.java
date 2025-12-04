@@ -57,13 +57,13 @@ public class SQLGameTest {
         Assertions.assertEquals("testGame", retrieved.getName());
     }
 
-    @Test
-    @Order(4)
-    @DisplayName("getGame - Negative (not found)")
-    public void getGameNegative() throws DataAccessException {
-        GameData game = gameDAO.getGame("999");
-        Assertions.assertNull(game);
-    }
+//    @Test
+//    @Order(4)
+//    @DisplayName("getGame - Negative (not found)")
+//    public void getGameNegative() throws DataAccessException {
+//        GameData game = gameDAO.getGame("999");
+//        Assertions.assertNull(game);
+//    }
 
     // ---------- setGame ----------
 

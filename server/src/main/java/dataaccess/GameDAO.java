@@ -12,6 +12,6 @@ public interface GameDAO {
     Boolean setGame(GameData currGame, String playerColor, String username) throws DataAccessException;
     ArrayList<GameData> getList() throws DataAccessException;
     void clearAllGames() throws DataAccessException;
-    void updateGame(String gameID, GameData updatedGame) throws DataAccessException;
+    //void updateGame(String gameID, GameData updatedGame) throws DataAccessException;
 }
 

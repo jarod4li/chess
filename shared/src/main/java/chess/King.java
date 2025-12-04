@@ -20,7 +20,9 @@ public class King implements PieceMovesCalculator {
 
         for (int rowOffset : directions) {
             for (int colOffset : directions) {
-                if (rowOffset == 0 && colOffset == 0) continue;
+                if (rowOffset == 0 && colOffset == 0) {
+                    continue;
+                }
 
                 int newRow = currRow + rowOffset;
                 int newCol = currCol + colOffset;

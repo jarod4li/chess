@@ -32,7 +32,8 @@ public class ServerFacade {
             if (conn.getResponseCode() == 200){
                 return new Gson().fromJson(new InputStreamReader(conn.getInputStream()), AuthData.class).getToken();
             } else {
-                System.out.println(JsonParser.parseReader(new InputStreamReader(conn.getErrorStream())).getAsJsonObject().get("message").getAsString());
+                System.out.println(JsonParser.parseReader(new InputStreamReader(conn.getErrorStream())).
+                        getAsJsonObject().get("message").getAsString());
                 return null;
             }
         } catch (Exception e){
