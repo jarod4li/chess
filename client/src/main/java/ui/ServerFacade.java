@@ -20,74 +20,52 @@ public class ServerFacade {
         this.portNumber = portNumber;
     }
 
-    // ---------- REGISTER ----------
+    private String sendAuthRequest(String endpoint, UserData user) throws IOException {
+        URL url = new URL(URL_BEGINNING + portNumber + endpoint);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setDoOutput(true);
+        conn.setRequestProperty("Content-Type", "application/json");
+
+        String jsonData = gson.toJson(user);
+        conn.getOutputStream().write(jsonData.getBytes());
+        conn.connect();
+
+        if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+            try (InputStreamReader reader = new InputStreamReader(conn.getInputStream())) {
+                AuthData authToken = gson.fromJson(reader, AuthData.class);
+                return authToken.getToken();
+            }
+        } else {
+            try (InputStreamReader reader = new InputStreamReader(conn.getErrorStream())) {
+                String error = JsonParser.parseReader(reader)
+                        .getAsJsonObject()
+                        .get("message")
+                        .getAsString();
+                System.out.println(error);
+            }
+            return null;
+        }
+    }
+
     public String register(String username, String password, String email) {
         try {
             UserData user = new UserData(username, password, email);
-
-            URL url = new URL(URL_BEGINNING + portNumber + "/user");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            String jsonData = gson.toJson(user);
-            conn.getOutputStream().write(jsonData.getBytes());
-            conn.connect();
-
-            if (conn.getResponseCode() == 200) {
-                InputStreamReader reader = new InputStreamReader(conn.getInputStream());
-                AuthData authToken = gson.fromJson(reader, AuthData.class);
-                return authToken.getToken();   // uses your actual AuthData getter
-            } else {
-                InputStreamReader reader = new InputStreamReader(conn.getErrorStream());
-                String error = JsonParser.parseReader(reader)
-                        .getAsJsonObject()
-                        .get("message")
-                        .getAsString();
-                System.out.println(error);
-                return null; // tests expect null on failure
-            }
-
+            return sendAuthRequest("/user", user);
         } catch (IOException e) {
             return null;
         }
     }
 
-    // ---------- LOGIN ----------
     public String login(String username, String password) {
         try {
             UserData user = new UserData(username, password, null);
-
-            URL url = new URL(URL_BEGINNING + portNumber + "/session");
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setDoOutput(true);
-            conn.setRequestProperty("Content-type", "application/json");
-
-            String jsonData = gson.toJson(user);
-            conn.getOutputStream().write(jsonData.getBytes());
-            conn.connect();
-
-            if (conn.getResponseCode() == 200) {
-                InputStreamReader reader = new InputStreamReader(conn.getInputStream());
-                AuthData authToken = gson.fromJson(reader, AuthData.class);
-                return authToken.getToken();
-            } else {
-                InputStreamReader reader = new InputStreamReader(conn.getErrorStream());
-                String error = JsonParser.parseReader(reader)
-                        .getAsJsonObject()
-                        .get("message")
-                        .getAsString();
-                System.out.println(error);
-                return null;
-            }
+            return sendAuthRequest("/session", user);
         } catch (IOException e) {
             return null;
         }
     }
 
-    // ---------- LOGOUT ----------
     public void logout(String token) {
         try {
             URL url = new URL(URL_BEGINNING + portNumber + "/session");
@@ -95,13 +73,10 @@ public class ServerFacade {
             conn.setRequestMethod("DELETE");
             conn.setRequestProperty("authorization", token);
             conn.connect();
-
-            // tests just care that this does not throw
         } catch (IOException ignored) {
         }
     }
 
-    // ---------- CREATE GAME ----------
     public String createGame(String gameName, String token) {
         try {
             URL url = new URL(URL_BEGINNING + portNumber + "/game");
@@ -117,15 +92,13 @@ public class ServerFacade {
             conn.getOutputStream().write(jsonData.getBytes());
             conn.connect();
 
-            if (conn.getResponseCode() == 200) {
-                // Server responds with {"gameID": "..."}
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 InputStreamReader reader = new InputStreamReader(conn.getInputStream());
                 var jsonObj = JsonParser.parseReader(reader).getAsJsonObject();
                 String gameID = jsonObj.get("gameID").getAsString();
                 System.out.println("Game created successfully");
                 return gameID;
             } else {
-                // e.g. unauthorized: {"message": "Error: unauthorized"}
                 InputStreamReader reader = new InputStreamReader(conn.getErrorStream());
                 String error = JsonParser.parseReader(reader)
                         .getAsJsonObject()
@@ -133,7 +106,6 @@ public class ServerFacade {
                         .getAsString();
 
                 System.out.println(error);
-                // testCreateGameNegative expects this exact string
                 return error;
             }
         } catch (IOException e) {
@@ -141,10 +113,8 @@ public class ServerFacade {
         }
     }
 
-    // ---------- JOIN GAME ----------
     public boolean joinGame(String gameID, String playerColor, String token) {
         try {
-            // This matches your previous working API usage
             GameData game = new GameData(playerColor, gameID);
 
             URL url = new URL(URL_BEGINNING + portNumber + "/game");
@@ -158,8 +128,8 @@ public class ServerFacade {
             conn.getOutputStream().write(jsonData.getBytes());
             conn.connect();
 
-            if (conn.getResponseCode() == 200) {
-                return true;   // testJoinGamePositive expects true
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                return true;
             } else {
                 InputStreamReader reader = new InputStreamReader(conn.getErrorStream());
                 String error = JsonParser.parseReader(reader)
@@ -174,7 +144,6 @@ public class ServerFacade {
         return false;
     }
 
-    // ---------- LIST ALL GAMES ----------
     public GameData[] listAllGames(String token) {
         try {
             URL url = new URL(URL_BEGINNING + portNumber + "/game");
@@ -183,7 +152,7 @@ public class ServerFacade {
             conn.setRequestProperty("authorization", token);
             conn.setDoOutput(true);
 
-            if (conn.getResponseCode() == 200) {
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 InputStreamReader reader = new InputStreamReader(conn.getInputStream());
                 record ListGames(GameData[] games) {}
                 ListGames games = gson.fromJson(reader, ListGames.class);
@@ -192,11 +161,9 @@ public class ServerFacade {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        // tests only assertDoesNotThrow; returning null is fine
         return null;
     }
 
-    // ---------- CLEAR ----------
     public void clear() {
         try {
             URL url = new URL(URL_BEGINNING + portNumber + "/db");
@@ -204,7 +171,7 @@ public class ServerFacade {
             conn.setRequestMethod("DELETE");
             conn.setDoOutput(true);
             conn.connect();
-            if (conn.getResponseCode() == 200) {
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 System.out.println("DB cleared successfully!");
             } else {
                 InputStreamReader inputStreamReader = new InputStreamReader(conn.getErrorStream());
